@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: privacylens-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_EMBED_MODEL
+        value: nvidia/nv-embedqa-e5-v5
+      - key: NVIDIA_CHAT_MODEL
+        value: meta/llama-3.1-70b-instruct
+      - key: NVIDIA_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+    healthCheckPath: /health
