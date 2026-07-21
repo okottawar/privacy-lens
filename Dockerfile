@@ -12,8 +12,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./app ./app
 
-# Render sets $PORT at runtime; default to 7860 for local/HF Spaces use
+# Build-time check: forces any real ImportError/SyntaxError to show clearly in build logs
+RUN python -c "import app.main"
+
 EXPOSE 7860
 ENV PORT=7860
 
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
