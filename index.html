@@ -1,171 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PrivacyLens — Policy Risk Analyzer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --ink:        #0d0f12;
-      --ink-2:      #3a3d44;
-      --ink-3:      #7a7f8a;
-      --paper:      #f5f3ee;
-      --paper-2:    #ede9e1;
-      --paper-3:    #e2ddd3;
-      --accent:     #c94b2e;
-      --accent-2:   #e8623f;
-      --amber:      #d97b1a;
-      --green:      #2d7a4f;
-      --red:        #c94b2e;
-      --surface:    #ffffff;
-      --border:     #d6d1c8;
-      --mono:       'DM Mono', monospace;
-      --serif:      'DM Serif Display', serif;
-      --sans:       'DM Sans', sans-serif;
-      --r:          6px;
-      --r-lg:       12px;
-      --shadow:     0 2px 12px rgba(13,15,18,0.08);
-      --shadow-lg:  0 8px 40px rgba(13,15,18,0.12);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 16px; scroll-behavior: smooth; }
-    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; line-height: 1.6; }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PrivacyLens — Policy Risk Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:        #0d0f12;
+    --ink-2:      #3a3d44;
+    --ink-3:      #7a7f8a;
+    --ink-4:      #a7abb3;
+    --paper:      #f5f3ee;
+    --paper-2:    #ede9e1;
+    --paper-3:    #e2ddd3;
+    --accent:     #c94b2e;
+    --accent-2:   #e8623f;
+    --accent-ink: #7a2c18;
+    --amber:      #d97b1a;
+    --green:      #2d7a4f;
+    --red:        #c94b2e;
+    --surface:    #ffffff;
+    --border:     #d6d1c8;
+    --mono:       'DM Mono', monospace;
+    --serif:      'DM Serif Display', serif;
+    --sans:       'DM Sans', sans-serif;
+    --r:          6px;
+    --r-lg:       14px;
+    --shadow:     0 2px 14px rgba(13,15,18,0.07);
+    --shadow-lg:  0 12px 44px rgba(13,15,18,0.14);
+    --ease:       cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+  body {
+    font-family: var(--sans);
+    background:
+      radial-gradient(1100px 500px at 12% -8%, rgba(201,75,46,0.05), transparent 60%),
+      var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+  ::selection { background: rgba(201,75,46,0.18); }
 
-    header { border-bottom: 1px solid var(--border); background: var(--surface); padding: 18px 0; position: sticky; top: 0; z-index: 100; }
-    .header-inner { display: flex; align-items: center; justify-content: space-between; }
-    .logo { font-family: var(--serif); font-size: 1.5rem; color: var(--ink); letter-spacing: -0.02em; }
-    .logo span { color: var(--accent); }
-    .badge { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; background: var(--paper-2); border: 1px solid var(--border); color: var(--ink-3); padding: 3px 8px; border-radius: 3px; }
+  a { color: var(--accent-ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 
-    .hero { padding: 56px 0 40px; border-bottom: 1px solid var(--border); }
-    .hero-eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
-    .hero h1 { font-family: var(--serif); font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.1; letter-spacing: -0.03em; max-width: 620px; margin-bottom: 16px; }
-    .hero h1 em { font-style: italic; color: var(--accent); }
-    .hero p { font-size: 1rem; color: var(--ink-2); max-width: 540px; line-height: 1.7; }
-    .arch-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
-    .pill { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-3); }
-    .pill.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  /*  Header  */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: rgba(245,243,238,0.86);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 18px 0;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-inner { display: flex; align-items: center; justify-content: space-between; }
+  .logo-mark { display: flex; align-items: center; gap: 10px; }
+  .logo-glyph {
+    width: 26px; height: 26px; flex-shrink: 0; position: relative;
+    border: 1.5px solid var(--ink); border-radius: 50%;
+  }
+  .logo-glyph::after {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 50%; background: var(--accent);
+  }
+  .logo { font-family: var(--serif); font-size: 1.4rem; color: var(--ink); letter-spacing: -0.02em; }
+  .logo span { color: var(--accent); }
+  .badge {
+    font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--paper-2); border: 1px solid var(--border); color: var(--ink-3);
+    padding: 4px 9px; border-radius: 3px;
+  }
 
-    .input-section { padding: 40px 0; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); }
-    .card-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--paper-2); display: flex; align-items: center; gap: 10px; }
-    .card-icon { width: 32px; height: 32px; background: var(--paper-2); border-radius: var(--r); display: flex; align-items: center; justify-content: center; font-size: 14px; }
-    .card-title { font-family: var(--serif); font-size: 1.1rem; letter-spacing: -0.01em; }
-    .card-body { padding: 20px 24px 24px; }
+  /*  Hero  */
+  .hero { padding: 64px 0 44px; border-bottom: 1px solid var(--border); position: relative; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .hero-eyebrow::before { content: ''; width: 22px; height: 1px; background: var(--accent); display: inline-block; }
+  .hero h1 {
+    font-family: var(--serif); font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.08;
+    letter-spacing: -0.03em; max-width: 640px; margin-bottom: 18px;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero p { font-size: 1.02rem; color: var(--ink-2); max-width: 560px; line-height: 1.75; }
+  .arch-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .pill {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; padding: 5px 11px;
+    border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-3);
+    transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
+  }
+  .pill.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
-    label { display: block; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 6px; }
-    .label-sub { font-size: 0.75rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-3); margin-left: 6px; }
-    input[type="text"], textarea { width: 100%; font-family: var(--mono); font-size: 0.85rem; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; color: var(--ink); transition: border-color 0.15s, box-shadow 0.15s; outline: none; }
-    input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(201,75,46,0.1); }
-    .input-row { margin-bottom: 16px; }
+  /*  Signature element: annotated clause strip  */
+  .clause-strip {
+    margin-top: 40px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-lg); padding: 18px 22px; box-shadow: var(--shadow);
+    font-family: var(--mono); font-size: 0.78rem; color: var(--ink-3); position: relative; overflow: hidden;
+  }
+  .clause-strip .line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 3px 0; }
+  .clause-strip mark {
+    background: rgba(201,75,46,0.12); color: var(--accent-ink); border-radius: 2px;
+    padding: 0 3px; font-weight: 500;
+  }
+  .clause-strip .tag {
+    font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+    border-left: 2px solid var(--accent); padding-left: 8px; margin-right: 10px;
+  }
 
-    .tabs { display: flex; gap: 0; background: var(--paper-2); border-radius: var(--r); padding: 3px; margin-bottom: 16px; width: fit-content; }
-    .tab-btn { font-family: var(--sans); font-size: 0.82rem; font-weight: 500; padding: 6px 16px; border: none; background: transparent; color: var(--ink-3); border-radius: calc(var(--r) - 2px); cursor: pointer; transition: all 0.15s; }
-    .tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
-    #paste-area { display: none; }
+  /*  Cards / inputs  */
+  .input-section { padding: 44px 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+  .card-header { padding: 20px 26px 16px; border-bottom: 1px solid var(--paper-2); display: flex; align-items: center; gap: 12px; }
+  .card-icon {
+    width: 34px; height: 34px; background: var(--paper-2); border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+  }
+  .card-title { font-family: var(--serif); font-size: 1.15rem; letter-spacing: -0.01em; }
+  .card-subtitle { font-size: 0.78rem; color: var(--ink-3); margin-top: 2px; }
+  .card-body { padding: 22px 26px 26px; }
 
-    .btn-analyze { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans); font-size: 0.9rem; font-weight: 600; background: var(--accent); color: white; border: none; border-radius: var(--r); padding: 12px 28px; cursor: pointer; transition: background 0.15s, transform 0.1s; margin-top: 8px; }
-    .btn-analyze:hover { background: var(--accent-2); transform: translateY(-1px); }
-    .btn-analyze:active { transform: translateY(0); }
-    .btn-analyze:disabled { background: var(--paper-3); color: var(--ink-3); cursor: not-allowed; transform: none; }
+  label { display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 8px; }
+  input[type="text"], textarea {
+    width: 100%; font-family: var(--mono); font-size: 0.85rem; background: var(--paper);
+    border: 1px solid var(--border); border-radius: var(--r); padding: 11px 14px; color: var(--ink);
+    transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease); outline: none; resize: vertical;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(201,75,46,0.1); }
+  .input-row { margin-bottom: 18px; }
 
-    .tip { display: flex; gap: 10px; align-items: flex-start; background: #fff8f0; border: 1px solid #f0d4b0; border-radius: var(--r); padding: 10px 14px; font-size: 0.8rem; color: #7a5020; margin-top: 8px; }
-    .tip strong { font-weight: 600; }
-    .tip a { color: #7a5020; }
+  .tabs { display: flex; gap: 0; background: var(--paper-2); border-radius: 9px; padding: 3px; margin-bottom: 16px; width: fit-content; }
+  .tab-btn {
+    font-family: var(--sans); font-size: 0.82rem; font-weight: 500; padding: 7px 18px; border: none;
+    background: transparent; color: var(--ink-3); border-radius: 7px; cursor: pointer; transition: all 0.15s var(--ease);
+  }
+  .tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
-    #pipeline-status { display: none; padding: 32px 0; }
-    .pipeline-track { display: flex; flex-direction: column; gap: 0; }
-    .pipe-step { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: var(--surface); border: 1px solid var(--border); border-bottom: none; font-size: 0.85rem; color: var(--ink-3); transition: all 0.2s; }
-    .pipe-step:first-child { border-radius: var(--r-lg) var(--r-lg) 0 0; }
-    .pipe-step:last-child  { border-radius: 0 0 var(--r-lg) var(--r-lg); border-bottom: 1px solid var(--border); }
-    .pipe-step.active  { background: #fff8f6; color: var(--ink); border-color: var(--accent); }
-    .pipe-step.done    { color: var(--green); }
-    .pipe-step.error   { color: var(--red); background: #fff5f5; }
-    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--paper-3); flex-shrink: 0; transition: background 0.2s; }
-    .pipe-step.active .step-dot  { background: var(--accent); animation: pulse 1s infinite; }
-    .pipe-step.done .step-dot    { background: var(--green); }
-    .pipe-step.error .step-dot   { background: var(--red); }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .btn-analyze {
+    display: inline-flex; align-items: center; gap: 9px; font-family: var(--sans); font-size: 0.92rem;
+    font-weight: 600; background: var(--accent); color: white; border: none; border-radius: var(--r);
+    padding: 13px 30px; cursor: pointer; transition: background 0.18s var(--ease), transform 0.12s var(--ease), box-shadow 0.18s var(--ease);
+    margin-top: 10px; box-shadow: 0 4px 16px rgba(201,75,46,0.24);
+  }
+  .btn-analyze:hover { background: var(--accent-2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,75,46,0.3); }
+  .btn-analyze:active { transform: translateY(0); }
+  .btn-analyze:disabled { background: var(--paper-3); color: var(--ink-3); cursor: not-allowed; transform: none; box-shadow: none; }
 
-    #results { display: none; padding-bottom: 60px; }
-    .results-header { padding: 36px 0 24px; }
-    .results-url { font-family: var(--mono); font-size: 0.75rem; color: var(--ink-3); margin-bottom: 12px; }
-    .results-title { font-family: var(--serif); font-size: 1.8rem; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .tip {
+    display: flex; gap: 10px; align-items: flex-start; background: #fff8f0; border: 1px solid #f0d4b0;
+    border-radius: var(--r); padding: 11px 14px; font-size: 0.8rem; color: #7a5020; margin-top: 10px;
+  }
+  .tip strong { font-weight: 600; }
+  .tip a { color: #7a5020; }
 
-    .score-banner { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 28px; box-shadow: var(--shadow); }
-    .score-left { padding: 28px 32px; display: flex; flex-direction: column; justify-content: center; min-width: 160px; text-align: center; }
-    .score-num { font-family: var(--serif); font-size: 3.5rem; line-height: 1; letter-spacing: -0.04em; }
-    .score-denom { font-family: var(--mono); font-size: 0.8rem; color: var(--ink-3); margin-top: 2px; }
-    .score-label { font-weight: 600; font-size: 0.85rem; margin-top: 8px; letter-spacing: 0.02em; }
-    .score-right { flex: 1; padding: 24px 28px; border-left: 1px solid var(--border); }
-    .score-summary-head { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: 10px; }
-    .score-summary-text { font-size: 0.95rem; line-height: 1.7; color: var(--ink-2); }
-    .score-meta { display: flex; gap: 20px; margin-top: 16px; flex-wrap: wrap; }
-    .score-meta-item { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-3); }
-    .score-meta-item strong { color: var(--ink); font-size: 0.85rem; }
+  /*  Pipeline  */
+  #pipeline-status { display: none; padding: 36px 0; }
+  .pipeline-track { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .pipe-step {
+    display: flex; align-items: center; gap: 14px; padding: 13px 22px; background: var(--surface);
+    border: 1px solid var(--border); border-bottom: none; font-size: 0.85rem; color: var(--ink-3);
+    transition: all 0.25s var(--ease); position: relative;
+  }
+  .pipe-step:first-child { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .pipe-step:last-child  { border-radius: 0 0 var(--r-lg) var(--r-lg); border-bottom: 1px solid var(--border); }
+  .pipe-step.active  { background: #fff8f6; color: var(--ink); border-color: var(--accent); font-weight: 500; }
+  .pipe-step.done    { color: var(--green); }
+  .pipe-step.error   { color: var(--red); background: #fff5f5; }
+  .step-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--paper-3); flex-shrink: 0; transition: background 0.25s var(--ease); position: relative; }
+  .pipe-step.active .step-dot  { background: var(--accent); animation: pulse 1.1s infinite; }
+  .pipe-step.done .step-dot    { background: var(--green); }
+  .pipe-step.error .step-dot   { background: var(--red); }
+  .step-num { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-4); margin-left: auto; }
+  @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(201,75,46,0.4); } 50% { opacity: 0.4; box-shadow: 0 0 0 5px rgba(201,75,46,0); } }
 
-    .risk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 32px; }
-    .risk-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 20px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
-    .risk-card:hover { box-shadow: var(--shadow-lg); border-color: var(--ink-3); }
-    .risk-card.expanded { border-color: var(--accent); }
-    .risk-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .risk-cat-name { font-size: 0.82rem; font-weight: 600; letter-spacing: 0.02em; }
-    .risk-score-badge { font-family: var(--mono); font-size: 0.78rem; font-weight: 500; padding: 2px 8px; border-radius: 3px; }
-    .score-bar-wrap { height: 6px; background: var(--paper-2); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
-    .score-bar { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-    .risk-card-summary { font-size: 0.8rem; color: var(--ink-3); line-height: 1.5; }
+  /*  Results  */
+  #results { display: none; padding-bottom: 64px; }
+  .results-header { padding: 40px 0 26px; }
+  .results-url { font-family: var(--mono); font-size: 0.75rem; color: var(--ink-3); margin-bottom: 12px; word-break: break-all; }
+  .results-title { font-family: var(--serif); font-size: 1.9rem; letter-spacing: -0.02em; }
 
-    .finding-detail { display: none; padding-top: 14px; border-top: 1px solid var(--paper-2); margin-top: 14px; }
-    .risk-card.expanded .finding-detail { display: block; }
-    .finding-section-head { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin: 12px 0 6px; }
-    .finding-section-head:first-child { margin-top: 0; }
-    .finding-list { padding-left: 0; list-style: none; }
-    .finding-list li { font-size: 0.8rem; line-height: 1.5; color: var(--ink-2); padding: 4px 0 4px 14px; position: relative; }
-    .finding-list li::before { content: '›'; position: absolute; left: 0; color: var(--ink-3); }
-    .flag-item::before { content: '⚑'; color: var(--red) !important; }
-    .good-item::before { content: '✓'; color: var(--green) !important; }
-    .evidence-chip { font-family: var(--mono); font-size: 0.73rem; background: var(--paper); border: 1px solid var(--paper-3); border-radius: var(--r); padding: 6px 10px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.5; display: block; }
+  .score-banner {
+    display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-lg); overflow: hidden; margin-bottom: 30px; box-shadow: var(--shadow-lg);
+  }
+  .score-left { padding: 30px 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 190px; text-align: center; }
+  .gauge-wrap { position: relative; width: 128px; height: 128px; margin-bottom: 4px; }
+  .gauge-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge-track { fill: none; stroke: var(--paper-2); stroke-width: 9; }
+  .gauge-fill { fill: none; stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset 1s var(--ease); }
+  .gauge-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .score-num { font-family: var(--serif); font-size: 2.6rem; line-height: 1; letter-spacing: -0.03em; }
+  .score-denom { font-family: var(--mono); font-size: 0.66rem; color: var(--ink-3); margin-top: 1px; }
+  .score-label { font-weight: 600; font-size: 0.84rem; margin-top: 10px; letter-spacing: 0.01em; }
+  .score-right { flex: 1; padding: 26px 30px; border-left: 1px solid var(--border); }
+  .score-summary-head { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: 10px; }
+  .score-summary-text { font-size: 0.96rem; line-height: 1.72; color: var(--ink-2); }
+  .score-meta { display: flex; gap: 22px; margin-top: 18px; flex-wrap: wrap; }
+  .score-meta-item { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-3); }
+  .score-meta-item strong { color: var(--ink); font-size: 0.86rem; font-family: var(--sans); font-weight: 600; }
 
-    .section-head { font-family: var(--serif); font-size: 1.3rem; letter-spacing: -0.01em; margin: 40px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-    .chunk-query-row { display: flex; gap: 8px; margin-bottom: 16px; }
-    .chunk-query-row input { flex: 1; }
-    .btn-search { font-family: var(--sans); font-size: 0.82rem; font-weight: 600; background: var(--ink); color: var(--paper); border: none; border-radius: var(--r); padding: 10px 18px; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
-    .btn-search:hover { background: var(--ink-2); }
-    #chunk-results { display: flex; flex-direction: column; gap: 10px; }
-    .chunk-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; }
-    .chunk-card-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-    .chunk-section-tag { font-family: var(--mono); font-size: 0.68rem; background: var(--paper-2); padding: 2px 8px; border-radius: 3px; color: var(--ink-2); }
-    .chunk-sim-score { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-3); }
-    .chunk-text { font-size: 0.82rem; line-height: 1.6; color: var(--ink-2); }
+  .section-head {
+    font-family: var(--serif); font-size: 1.35rem; letter-spacing: -0.01em; margin: 44px 0 18px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  }
+  .section-head .section-sub { font-family: var(--sans); font-size: 0.78rem; font-weight: 400; color: var(--ink-3); }
 
-    .error-banner { background: #fff5f5; border: 1px solid #f0c8c8; border-radius: var(--r-lg); padding: 20px 24px; color: var(--red); font-size: 0.9rem; }
-    .error-banner strong { display: block; margin-bottom: 4px; font-size: 1rem; }
+  .risk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 14px; margin-bottom: 8px; }
+  .risk-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 20px 22px; cursor: pointer; transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
+  }
+  .risk-card:hover { box-shadow: var(--shadow-lg); border-color: var(--ink-3); transform: translateY(-2px); }
+  .risk-card.expanded { border-color: var(--accent); box-shadow: var(--shadow-lg); }
+  .risk-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+  .risk-cat-name { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.01em; }
+  .risk-score-badge { font-family: var(--mono); font-size: 0.78rem; font-weight: 500; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+  .score-bar-wrap { height: 6px; background: var(--paper-2); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+  .score-bar { height: 100%; border-radius: 3px; transition: width 0.9s var(--ease); }
+  .risk-card-summary { font-size: 0.82rem; color: var(--ink-3); line-height: 1.55; }
+  .expand-hint { font-family: var(--mono); font-size: 0.65rem; color: var(--ink-4); margin-top: 12px; display: flex; align-items: center; gap: 5px; }
+  .risk-card.expanded .expand-hint span { transform: rotate(180deg); }
+  .expand-hint span { display: inline-block; transition: transform 0.2s var(--ease); }
 
-    .c-red   { color: var(--red); }
-    .c-amber { color: var(--amber); }
-    .c-green { color: var(--green); }
-    .bg-red   { background: #ffeaea; }
-    .bg-amber { background: #fff8ee; }
-    .bg-green { background: #eafaf1; }
+  .finding-detail { display: none; padding-top: 16px; border-top: 1px solid var(--paper-2); margin-top: 14px; }
+  .risk-card.expanded .finding-detail { display: block; }
+  .finding-section-head { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin: 14px 0 7px; }
+  .finding-section-head:first-child { margin-top: 0; }
+  .finding-list { padding-left: 0; list-style: none; }
+  .finding-list li { font-size: 0.81rem; line-height: 1.55; color: var(--ink-2); padding: 4px 0 4px 15px; position: relative; }
+  .finding-list li::before { content: '›'; position: absolute; left: 0; color: var(--ink-3); }
+  .flag-item::before { content: '⚑'; color: var(--red) !important; }
+  .good-item::before { content: '✓'; color: var(--green) !important; }
+  .evidence-chip {
+    font-family: var(--mono); font-size: 0.73rem; background: var(--paper); border: 1px solid var(--paper-3);
+    border-radius: var(--r); padding: 8px 11px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.55; display: block;
+    border-left: 2px solid var(--accent);
+  }
 
-    footer { border-top: 1px solid var(--border); padding: 24px 0; font-size: 0.75rem; color: var(--ink-3); text-align: center; font-family: var(--mono); }
+  .chunk-query-row { display: flex; gap: 8px; margin-bottom: 18px; }
+  .chunk-query-row input { flex: 1; }
+  .btn-search {
+    font-family: var(--sans); font-size: 0.82rem; font-weight: 600; background: var(--ink); color: var(--paper);
+    border: none; border-radius: var(--r); padding: 11px 20px; cursor: pointer; white-space: nowrap; transition: background 0.15s var(--ease);
+  }
+  .btn-search:hover { background: var(--ink-2); }
+  #chunk-results { display: flex; flex-direction: column; gap: 10px; }
+  .chunk-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 15px 17px; transition: border-color 0.15s var(--ease); }
+  .chunk-card:hover { border-color: var(--ink-3); }
+  .chunk-card-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 9px; flex-wrap: wrap; }
+  .chunk-section-tag { font-family: var(--mono); font-size: 0.67rem; background: var(--paper-2); padding: 3px 9px; border-radius: 3px; color: var(--ink-2); }
+  .chunk-sim-score { font-family: var(--mono); font-size: 0.67rem; color: var(--ink-3); }
+  .chunk-text { font-size: 0.82rem; line-height: 1.6; color: var(--ink-2); }
 
-    @media (max-width: 600px) {
-      .score-banner { flex-direction: column; }
-      .score-right { border-left: none; border-top: 1px solid var(--border); }
-      .risk-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+  .error-banner { background: #fff5f5; border: 1px solid #f0c8c8; border-radius: var(--r-lg); padding: 20px 24px; color: var(--red); font-size: 0.9rem; }
+  .error-banner strong { display: block; margin-bottom: 4px; font-size: 1rem; }
+
+  .c-red   { color: var(--red); }
+  .c-amber { color: var(--amber); }
+  .c-green { color: var(--green); }
+  .bg-red   { background: #fff2ef; }
+  .bg-amber { background: #fff8ee; }
+  .bg-green { background: #eafaf1; }
+
+  footer { border-top: 1px solid var(--border); padding: 28px 0; font-size: 0.74rem; color: var(--ink-3); text-align: center; font-family: var(--mono); }
+  footer a { color: var(--ink-3); text-decoration: underline; text-underline-offset: 2px; }
+
+  @media (max-width: 600px) {
+    .score-banner { flex-direction: column; }
+    .score-right { border-left: none; border-top: 1px solid var(--border); }
+    .risk-grid { grid-template-columns: 1fr; }
+    .clause-strip .line { white-space: normal; }
+  }
+</style>
 </head>
 <body>
 
 <header>
   <div class="wrap header-inner">
-    <div class="logo">Privacy<span>Lens</span></div>
-    <div class="badge">RAG · Gemini · LangChain · FAISS</div>
+    <div class="logo-mark">
+      <span class="logo-glyph"></span>
+      <div class="logo">Privacy<span>Lens</span></div>
+    </div>
+    <div class="badge">RAG · LangChain · FAISS · NVIDIA NIM</div>
   </div>
 </header>
 
@@ -177,14 +304,14 @@
     <h1>Understand what a privacy policy <em>actually</em> says.</h1>
     <p>
       Enter a privacy policy URL. The system chunks the document, semantically retrieves
-      relevant clauses across six risk categories, and uses Gemini to reason over
-      real evidence — not hallucinated summaries.
+      relevant clauses across seven risk categories, and grounds every finding in retrieved
+      evidence — not a hallucinated summary.
     </p>
     <div class="arch-pills">
       <span class="pill active">LangChain</span>
       <span class="pill active">FAISS Vector DB</span>
       <span class="pill active">Semantic Chunking</span>
-      <span class="pill active">Gemini 1.5 Flash</span>
+      <span class="pill active">NVIDIA NIM LLM</span>
       <span class="pill active">Evidence Grounding</span>
       <span class="pill active">Heuristic Scoring</span>
     </div>
@@ -195,7 +322,10 @@
     <div class="card">
       <div class="card-header">
         <div class="card-icon">🔍</div>
-        <div class="card-title">Analyze a Privacy Policy</div>
+        <div>
+          <div class="card-title">Analyze a Privacy Policy</div>
+          <div class="card-subtitle">Provide a URL or paste text directly</div>
+        </div>
       </div>
       <div class="card-body">
 
@@ -234,13 +364,13 @@
   <!--  Pipeline status  -->
   <section id="pipeline-status">
     <div class="pipeline-track">
-      <div class="pipe-step" id="step-send">    <div class="step-dot"></div> Sending to analysis backend…       </div>
-      <div class="pipe-step" id="step-fetch">   <div class="step-dot"></div> Fetching &amp; parsing policy…     </div>
-      <div class="pipe-step" id="step-chunk">   <div class="step-dot"></div> Chunking document…                 </div>
-      <div class="pipe-step" id="step-embed">   <div class="step-dot"></div> Building FAISS vector index…       </div>
-      <div class="pipe-step" id="step-retrieve"><div class="step-dot"></div> Retrieving evidence per category…  </div>
-      <div class="pipe-step" id="step-llm">     <div class="step-dot"></div> LLM reasoning over evidence…       </div>
-      <div class="pipe-step" id="step-report">  <div class="step-dot"></div> Generating risk report…            </div>
+      <div class="pipe-step" id="step-send">    <div class="step-dot"></div> Sending to analysis backend…       <span class="step-num">01</span></div>
+      <div class="pipe-step" id="step-fetch">   <div class="step-dot"></div> Fetching &amp; parsing policy…     <span class="step-num">02</span></div>
+      <div class="pipe-step" id="step-chunk">   <div class="step-dot"></div> Chunking document…                 <span class="step-num">03</span></div>
+      <div class="pipe-step" id="step-embed">   <div class="step-dot"></div> Building FAISS vector index…       <span class="step-num">04</span></div>
+      <div class="pipe-step" id="step-retrieve"><div class="step-dot"></div> Retrieving evidence per category…  <span class="step-num">05</span></div>
+      <div class="pipe-step" id="step-llm">     <div class="step-dot"></div> LLM reasoning over evidence…       <span class="step-num">06</span></div>
+      <div class="pipe-step" id="step-report">  <div class="step-dot"></div> Generating risk report…            <span class="step-num">07</span></div>
     </div>
   </section>
 
@@ -255,8 +385,17 @@
 
     <div class="score-banner">
       <div class="score-left" id="score-left">
-        <div class="score-num" id="overall-num">—</div>
-        <div class="score-denom">/ 10</div>
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 120 120">
+            <circle class="gauge-track" cx="60" cy="60" r="52"></circle>
+            <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52"
+              stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+          </svg>
+          <div class="gauge-label">
+            <div class="score-num" id="overall-num">—</div>
+            <div class="score-denom">/ 10</div>
+          </div>
+        </div>
         <div class="score-label" id="overall-label">—</div>
       </div>
       <div class="score-right">
@@ -266,7 +405,7 @@
       </div>
     </div>
 
-    <div class="section-head">Risk Categories</div>
+    <div class="section-head">Risk Categories <span class="section-sub">click a card to expand findings</span></div>
     <div class="risk-grid" id="risk-grid"></div>
 
     <!-- Chunk explorer (client-side TF-IDF over returned chunks) -->
@@ -287,7 +426,7 @@
 <footer>
   <div class="wrap">
     PrivacyLens — portfolio project &nbsp;·&nbsp;
-    LangChain + FAISS + Gemini 1.5 Flash &nbsp;·&nbsp;
+    LangChain + FAISS + NVIDIA NIM &nbsp;·&nbsp;
     Findings are heuristic-based and not legal advice.
   </div>
 </footer>
@@ -334,6 +473,19 @@ function scoreBg(n) {
   return n <= 3 ? 'bg-green' : n <= 6 ? 'bg-amber' : 'bg-red';
 }
 
+// GAUGE
+const GAUGE_CIRC = 2 * Math.PI * 52; // ≈326.7
+function setGauge(score) {
+  const fill = document.getElementById('gauge-fill');
+  const frac = Math.max(0, Math.min(10, score)) / 10;
+  const offset = GAUGE_CIRC * (1 - frac);
+  fill.style.stroke = scoreColor(score);
+  // reset then animate
+  fill.style.strokeDashoffset = GAUGE_CIRC;
+  requestAnimationFrame(() => {
+    fill.style.strokeDashoffset = offset;
+  });
+}
 
 // PIPELINE STEP SIMULATION
 // Keeps the status panel feeling live while the backend works
@@ -439,12 +591,13 @@ function renderResults(data) {
   document.getElementById('overall-label').className   = 'score-label ' + scoreClass(score);
   document.getElementById('score-left').className      = 'score-left ' + scoreBg(score);
   document.getElementById('exec-summary').textContent  = data.executive_summary;
+  setGauge(score);
 
   document.getElementById('score-meta').innerHTML = `
     <div class="score-meta-item"><strong>${data.total_chunks}</strong><br>Chunks Indexed</div>
     <div class="score-meta-item"><strong>${data.total_sections}</strong><br>Sections Parsed</div>
     <div class="score-meta-item"><strong>${data.findings.length}</strong><br>Categories Analyzed</div>
-    <div class="score-meta-item"><strong>FAISS + Gemini</strong><br>Retrieval Method</div>
+    <div class="score-meta-item"><strong>FAISS + NIM</strong><br>Retrieval Method</div>
   `;
 
   const grid = document.getElementById('risk-grid');
@@ -479,6 +632,7 @@ function buildRiskCard(f) {
       <div class="score-bar" style="width:${score*10}%; background:${scoreColor(score)}"></div>
     </div>
     <div class="risk-card-summary">${escHtml(f.summary || '')}</div>
+    <div class="expand-hint"><span>▾</span> details</div>
     <div class="finding-detail">
       ${f.key_findings?.length ? `
         <div class="finding-section-head">Key Findings</div>
