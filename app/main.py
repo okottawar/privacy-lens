@@ -99,11 +99,13 @@ async def analyze(req: AnalyzeRequest):
     overall = compute_overall(findings)
 
     executive_summary = build_executive_summary(overall, findings)
+    executive_summary_parts = build_executive_summary_parts(overall, findings)
 
     return {
         "url": req.url if req.url else "pasted-text",
         "overall": overall,
         "executive_summary": executive_summary,
+        "executive_summary_parts": executive_summary_parts,
         "total_chunks": len(chunks),
         "total_sections": len(sections),
         "findings": findings,
@@ -123,3 +125,17 @@ def build_executive_summary(overall: dict, findings: list) -> str:
         "it is not legal advice."
     )
     return " ".join(parts)
+
+
+def build_executive_summary_parts(overall: dict, findings: list) -> dict:
+    high = [f["risk_category"] for f in findings if f["risk_score"] >= 7]
+    low = [f["risk_category"] for f in findings if f["risk_score"] <= 3]
+    return {
+        "headline": f"Overall privacy risk is rated {overall['score']}/10 ({overall['label']}).",
+        "highest_risk_areas": high,
+        "stronger_areas": low,
+        "disclaimer": (
+            "This assessment is generated from retrieved policy text and heuristic scoring; "
+            "it is not legal advice."
+        ),
+    }
