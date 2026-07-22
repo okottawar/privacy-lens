@@ -2,6 +2,7 @@
 PrivacyLens backend — RAG pipeline for privacy policy risk analysis.
 Fetch -> Parse/Clean -> Chunk -> Embed (NVIDIA NIM) -> FAISS -> Retrieve -> LLM (NVIDIA NIM) -> Score -> Report
 """
+import asyncio
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,7 @@ app = FastAPI(title="PrivacyLens API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # public demo — tighten if you deploy for real users
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -40,8 +41,28 @@ def health():
     return {"status": "healthy"}
 
 
+async def _run_category(category: dict, index: EmbeddingIndex) -> dict:
+    try:
+        retrieved = await index.search(category["query"], k=6)
+        return await analyze_category(category, retrieved)
+    except Exception as e:
+        logger.exception(f"Category analysis failed: {category['name']}")
+        return {
+            "risk_category": category["name"],
+            "risk_score": 5,
+            "summary": "Analysis failed for this category; treated as indeterminate.",
+            "explanation": f"Error during reasoning: {e}",
+            "key_findings": [],
+            "red_flags": [],
+            "positive_indicators": [],
+            "evidence": [],
+            "evidence_chunks": [],
+        }
+
+
 @app.post("/api/v1/analyze")
-def analyze(req: AnalyzeRequest):
+async def analyze(req: AnalyzeRequest):
+    # 1. Retrieval / ingestion ------------------------------------------------
     try:
         if req.policy_text and req.policy_text.strip():
             sections = fetch_and_parse(text_override=req.policy_text)
@@ -58,37 +79,25 @@ def analyze(req: AnalyzeRequest):
     if not sections:
         raise HTTPException(status_code=422, detail="No readable content found at that URL.")
 
+    # 2. Chunking ---------------------------------------------------------------
     chunks = chunk_sections(sections)
     if not chunks:
         raise HTTPException(status_code=422, detail="Document parsed but produced no usable chunks.")
 
+    # 3. Embedding + FAISS index -------------------------------------------------
     try:
-        index = EmbeddingIndex(chunks)
+        index = await EmbeddingIndex.create(chunks)
     except Exception as e:
         logger.exception("Embedding/index build failed")
         raise HTTPException(status_code=502, detail=f"Embedding service error: {e}")
 
-    findings = []
-    for category in RISK_CATEGORIES:
-        try:
-            retrieved = index.search(category["query"], k=6)
-            finding = analyze_category(category, retrieved)
-            findings.append(finding)
-        except Exception as e:
-            logger.exception(f"Category analysis failed: {category['name']}")
-            findings.append({
-                "risk_category": category["name"],
-                "risk_score": 5,
-                "summary": "Analysis failed for this category; treated as indeterminate.",
-                "explanation": f"Error during reasoning: {e}",
-                "key_findings": [],
-                "red_flags": [],
-                "positive_indicators": [],
-                "evidence": [],
-                "evidence_chunks": [],
-            })
+    # 4. Retrieval + LLM reasoning per risk category — run concurrently ----------
+    findings = await asyncio.gather(*(_run_category(c, index) for c in RISK_CATEGORIES))
+    findings = list(findings)
 
+    # 5. Deterministic overall scoring -------------------------------------------
     overall = compute_overall(findings)
+
     executive_summary = build_executive_summary(overall, findings)
 
     return {
