@@ -228,6 +228,24 @@
   .score-right { flex: 1; padding: 28px 32px; border-left: 1px solid var(--border); }
   .score-summary-head { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: 11px; }
   .score-summary-text { font-size: 0.98rem; line-height: 1.75; color: var(--ink-2); }
+  .exec-headline { font-size: 1rem; line-height: 1.6; color: var(--ink); font-weight: 500; margin-bottom: 16px; }
+  .exec-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+  .exec-row:last-of-type { margin-bottom: 0; }
+  .exec-row-label {
+    font-family: var(--mono); font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 4px; flex-shrink: 0; margin-top: 1px; white-space: nowrap;
+  }
+  .exec-row-label.risk { background: #fff2ef; color: var(--red); }
+  .exec-row-label.good { background: #eafaf1; color: var(--green); }
+  .exec-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .exec-tag {
+    font-size: 0.8rem; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 5px;
+    padding: 3px 10px; color: var(--ink-2);
+  }
+  .exec-disclaimer {
+    font-size: 0.76rem; color: var(--ink-3); margin-top: 16px; padding-top: 14px;
+    border-top: 1px solid var(--paper-2); font-style: italic; line-height: 1.6;
+  }
   .score-meta { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
   .score-meta-item { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-3); }
   .score-meta-item strong { color: var(--ink); font-size: 0.87rem; font-family: var(--sans); font-weight: 600; }
@@ -246,7 +264,6 @@
     animation: cardIn 0.5s var(--ease) both;
   }
   .risk-card:hover { box-shadow: var(--shadow-xl); border-color: var(--ink-3); transform: translateY(-3px); }
-  .risk-card.expanded { border-color: var(--accent); box-shadow: var(--shadow-xl); }
   @keyframes cardIn {
     from { opacity: 0; transform: translateY(10px) scale(0.98); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -264,12 +281,44 @@
   .score-bar-wrap { height: 6px; background: var(--paper-2); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
   .score-bar { height: 100%; border-radius: 3px; transition: width 0.9s var(--ease); }
   .risk-card-summary { font-size: 0.82rem; color: var(--ink-3); line-height: 1.55; }
-  .expand-hint { font-family: var(--mono); font-size: 0.65rem; color: var(--ink-4); margin-top: 12px; display: flex; align-items: center; gap: 5px; }
-  .risk-card.expanded .expand-hint span { transform: rotate(180deg); }
+  .expand-hint {
+    font-family: var(--mono); font-size: 0.65rem; color: var(--ink-4); margin-top: 14px;
+    display: flex; align-items: center; gap: 5px; transition: color 0.2s var(--ease);
+  }
+  .risk-card:hover .expand-hint { color: var(--accent); }
   .expand-hint span { display: inline-block; transition: transform 0.2s var(--ease); }
+  .risk-card:hover .expand-hint span { transform: translateX(3px); }
 
-  .finding-detail { display: none; padding-top: 16px; border-top: 1px solid var(--paper-2); margin-top: 14px; }
-  .risk-card.expanded .finding-detail { display: block; }
+  /*  Detail Modal  */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(13,15,18,0.55);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    z-index: 1000; align-items: flex-start; justify-content: center;
+    padding: 5vh 20px; overflow-y: auto; animation: overlayIn 0.2s var(--ease) both;
+  }
+  .modal-overlay.open { display: flex; }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-card {
+    background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
+    max-width: 640px; width: 100%; padding: 0; animation: modalIn 0.3s var(--ease-spring) both;
+    max-height: 90vh; display: flex; flex-direction: column;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .modal-header { padding: 26px 30px 20px; border-bottom: 1px solid var(--paper-2); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-shrink: 0; }
+  .modal-title-group { flex: 1; }
+  .modal-cat-name { font-family: var(--serif); font-size: 1.5rem; letter-spacing: -0.01em; margin-bottom: 10px; }
+  .modal-score-row { display: flex; align-items: center; gap: 12px; }
+  .modal-score-badge { font-family: var(--mono); font-size: 0.85rem; font-weight: 500; padding: 4px 12px; border-radius: 20px; }
+  .modal-bar-wrap { flex: 1; height: 7px; background: var(--paper-2); border-radius: 4px; overflow: hidden; max-width: 180px; }
+  .modal-bar { height: 100%; border-radius: 4px; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--paper);
+    color: var(--ink-2); font-size: 1.1rem; cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; transition: background 0.15s var(--ease), transform 0.15s var(--ease);
+  }
+  .modal-close:hover { background: var(--paper-3); transform: rotate(90deg); }
+  .modal-body { padding: 24px 30px 30px; overflow-y: auto; }
+  .modal-summary { font-size: 0.95rem; line-height: 1.7; color: var(--ink-2); margin-bottom: 6px; }
   .finding-section-head { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin: 14px 0 7px; }
   .finding-section-head:first-child { margin-top: 0; }
   .finding-list { padding-left: 0; list-style: none; }
@@ -283,20 +332,6 @@
     border-left: 2px solid var(--accent);
   }
 
-  .chunk-query-row { display: flex; gap: 8px; margin-bottom: 18px; }
-  .chunk-query-row input { flex: 1; }
-  .btn-search {
-    font-family: var(--sans); font-size: 0.82rem; font-weight: 600; background: var(--ink); color: var(--paper);
-    border: none; border-radius: var(--r); padding: 11px 20px; cursor: pointer; white-space: nowrap; transition: background 0.15s var(--ease);
-  }
-  .btn-search:hover { background: var(--ink-2); }
-  #chunk-results { display: flex; flex-direction: column; gap: 10px; }
-  .chunk-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 15px 17px; transition: border-color 0.15s var(--ease); }
-  .chunk-card:hover { border-color: var(--ink-3); }
-  .chunk-card-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 9px; flex-wrap: wrap; }
-  .chunk-section-tag { font-family: var(--mono); font-size: 0.67rem; background: var(--paper-2); padding: 3px 9px; border-radius: 3px; color: var(--ink-2); }
-  .chunk-sim-score { font-family: var(--mono); font-size: 0.67rem; color: var(--ink-3); }
-  .chunk-text { font-size: 0.82rem; line-height: 1.6; color: var(--ink-2); }
 
   .error-banner { background: #fff5f5; border: 1px solid #f0c8c8; border-radius: var(--r-lg); padding: 20px 24px; color: var(--red); font-size: 0.9rem; }
   .error-banner strong { display: block; margin-bottom: 4px; font-size: 1rem; }
@@ -440,23 +475,29 @@
       </div>
     </div>
 
-    <div class="section-head">Risk Categories <span class="section-sub">click a card to expand findings</span></div>
+    <div class="section-head">Risk Categories <span class="section-sub">click a card for full details</span></div>
     <div class="risk-grid" id="risk-grid"></div>
-
-    <!-- Chunk explorer (client-side TF-IDF over returned chunks) -->
-    <div class="section-head">Semantic Chunk Explorer</div>
-    <p style="font-size:0.85rem; color:var(--ink-3); margin-bottom:16px;">
-      Query the indexed document directly to inspect which chunks are retrieved and their similarity scores.
-    </p>
-    <div class="chunk-query-row">
-      <input type="text" id="chunk-query" placeholder="e.g. how long is data retained?" />
-      <button class="btn-search" onclick="searchChunks()">Retrieve</button>
-    </div>
-    <div id="chunk-results"></div>
   </section>
 
 </div>
 </main>
+
+<!--  Finding Detail Modal  -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-cat-name" id="modal-cat-name">—</div>
+        <div class="modal-score-row">
+          <span class="modal-score-badge" id="modal-score-badge">—</span>
+          <div class="modal-bar-wrap"><div class="modal-bar" id="modal-bar"></div></div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
 
 <footer>
   <div class="wrap">
@@ -471,11 +512,9 @@
 // CONFIG
 const BACKEND_URL = 'https://privacylens-backend.onrender.com';
 
-// STATE — chunks returned from backend for the explorer
-let gChunks   = [];   // flat list of {section, content} for TF-IDF
+// STATE
 let activeTab = 'url';  // track which tab is active
 let gFindings = [];
-let gTfidf    = null;
 
 // UI HELPERS
 function switchTab(tab) {
@@ -590,21 +629,8 @@ async function runAnalysis() {
 
     const data = await res.json();
     finishStepSimulation();
-
-    // Render results first — never block on TF-IDF build
     renderResults(data);
-
-    // Stash chunks from evidence for the chunk explorer
-    // Wrapped in try/catch so a TF-IDF failure never breaks the report
-    try {
-      gFindings = data.findings;
-      gChunks = data.findings.flatMap(f =>
-        (f.evidence_chunks || []).map(c => ({ section: c.section, content: c.content }))
-      );
-      if (gChunks.length > 0) gTfidf = buildTFIDF(gChunks);
-    } catch (e) {
-      console.warn('Chunk explorer unavailable:', e);
-    }
+    gFindings = data.findings;
 
   } catch (err) {
     console.error('ANALYSIS ERROR:', err);
@@ -614,6 +640,33 @@ async function runAnalysis() {
     document.getElementById('analyze-btn').disabled = false;
     document.getElementById('btn-text').textContent = 'Analyze Policy →';
   }
+}
+
+function buildExecSummaryHTML(data) {
+  const parts = data.executive_summary_parts;
+  if (!parts) {
+    // fallback for older backend responses without structured parts
+    return `<div class="exec-headline">${escHtml(data.executive_summary || '')}</div>`;
+  }
+
+  let html = `<div class="exec-headline">${escHtml(parts.headline)}</div>`;
+
+  if (parts.highest_risk_areas?.length) {
+    html += `
+      <div class="exec-row">
+        <span class="exec-row-label risk">Highest Risk</span>
+        <div class="exec-tags">${parts.highest_risk_areas.map(a => `<span class="exec-tag">${escHtml(a)}</span>`).join('')}</div>
+      </div>`;
+  }
+  if (parts.stronger_areas?.length) {
+    html += `
+      <div class="exec-row">
+        <span class="exec-row-label good">Stronger Areas</span>
+        <div class="exec-tags">${parts.stronger_areas.map(a => `<span class="exec-tag">${escHtml(a)}</span>`).join('')}</div>
+      </div>`;
+  }
+  html += `<div class="exec-disclaimer">${escHtml(parts.disclaimer)}</div>`;
+  return html;
 }
 
 // RENDER RESULTS
@@ -626,7 +679,7 @@ function renderResults(data) {
   document.getElementById('overall-label').textContent = data.overall.label;
   document.getElementById('overall-label').className   = 'score-label ' + scoreClass(score);
   document.getElementById('score-left').className      = 'score-left ' + scoreBg(score);
-  document.getElementById('exec-summary').textContent  = data.executive_summary;
+  document.getElementById('exec-summary').innerHTML = buildExecSummaryHTML(data);
   setGauge(score);
 
   document.getElementById('score-meta').innerHTML = `
@@ -644,20 +697,14 @@ function renderResults(data) {
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+let gFindingsByCategory = {};
+
 function buildRiskCard(f) {
   const score = f.risk_score;
   const card  = document.createElement('div');
   card.className = 'risk-card';
-  card.onclick = () => card.classList.toggle('expanded');
-
-  const flagsHTML = f.red_flags?.length
-    ? f.red_flags.map(r => `<li class="flag-item">${escHtml(r)}</li>`).join('')
-    : '<li style="color:var(--ink-3)">None identified</li>';
-  const goodHTML = f.positive_indicators?.length
-    ? f.positive_indicators.map(p => `<li class="good-item">${escHtml(p)}</li>`).join('')
-    : '<li style="color:var(--ink-3)">None identified</li>';
-  const evidHTML = f.evidence?.slice(0, 3)
-    .map(e => `<span class="evidence-chip">"${escHtml(e)}"</span>`).join('') || '';
+  card.onclick = () => openModal(f.risk_category);
+  gFindingsByCategory[f.risk_category] = f;
 
   card.innerHTML = `
     <div class="risk-card-top">
@@ -668,107 +715,58 @@ function buildRiskCard(f) {
       <div class="score-bar" style="width:${score*10}%; background:${scoreColor(score)}"></div>
     </div>
     <div class="risk-card-summary">${escHtml(f.summary || '')}</div>
-    <div class="expand-hint"><span>▾</span> details</div>
-    <div class="finding-detail">
-      ${f.key_findings?.length ? `
-        <div class="finding-section-head">Key Findings</div>
-        <ul class="finding-list">
-          ${f.key_findings.map(k => `<li>${escHtml(k)}</li>`).join('')}
-        </ul>` : ''}
-      <div class="finding-section-head">Red Flags</div>
-      <ul class="finding-list">${flagsHTML}</ul>
-      <div class="finding-section-head">Positive Indicators</div>
-      <ul class="finding-list">${goodHTML}</ul>
-      ${evidHTML ? `<div class="finding-section-head">Evidence Retrieved</div>${evidHTML}` : ''}
-    </div>
+    <div class="expand-hint"><span>→</span> view full details</div>
   `;
   return card;
 }
 
-// CLIENT-SIDE TF-IDF CHUNK EXPLORER
-// Runs over evidence chunks returned by the backend
-const STOPWORDS = new Set([
-  'the','and','for','are','but','not','you','all','can','was','one',
-  'our','out','get','has','how','its','may','new','now','see','who',
-  'did','let','put','say','she','too','use','will','that','this',
-  'with','have','from','they','been','than','your','each','which',
-  'when','what','more','also','into','some','such','even','most',
-  'over','other','these','those','about','any','would','just','time',
-]);
+function openModal(category) {
+  const f = gFindingsByCategory[category];
+  if (!f) return;
+  const score = f.risk_score;
 
-function tokenize(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/)
-    .filter(w => w.length > 2 && !STOPWORDS.has(w));
+  document.getElementById('modal-cat-name').textContent = f.risk_category;
+  const badge = document.getElementById('modal-score-badge');
+  badge.textContent = `${score}/10`;
+  badge.className = `modal-score-badge ${scoreBg(score)} ${scoreClass(score)}`;
+  const bar = document.getElementById('modal-bar');
+  bar.style.width = `${score*10}%`;
+  bar.style.background = scoreColor(score);
+
+  const flagsHTML = f.red_flags?.length
+    ? f.red_flags.map(r => `<li class="flag-item">${escHtml(r)}</li>`).join('')
+    : '<li style="color:var(--ink-3)">None identified</li>';
+  const goodHTML = f.positive_indicators?.length
+    ? f.positive_indicators.map(p => `<li class="good-item">${escHtml(p)}</li>`).join('')
+    : '<li style="color:var(--ink-3)">None identified</li>';
+  const evidHTML = f.evidence?.slice(0, 3)
+    .map(e => `<span class="evidence-chip">"${escHtml(e)}"</span>`).join('') || '';
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-summary">${escHtml(f.explanation || f.summary || '')}</div>
+    ${f.key_findings?.length ? `
+      <div class="finding-section-head">Key Findings</div>
+      <ul class="finding-list">
+        ${f.key_findings.map(k => `<li>${escHtml(k)}</li>`).join('')}
+      </ul>` : ''}
+    <div class="finding-section-head">Red Flags</div>
+    <ul class="finding-list">${flagsHTML}</ul>
+    <div class="finding-section-head">Positive Indicators</div>
+    <ul class="finding-list">${goodHTML}</ul>
+    ${evidHTML ? `<div class="finding-section-head">Evidence Retrieved</div>${evidHTML}` : ''}
+  `;
+
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
-function buildTFIDF(chunks) {
-  const docs = chunks.map(c => tokenize(c.content));
-  const df = {};
-  for (const doc of docs) {
-    for (const t of new Set(doc)) df[t] = (df[t] || 0) + 1;
-  }
-  const N = docs.length;
-  const idf = {};
-  for (const t in df) idf[t] = Math.log((N + 1) / (df[t] + 1)) + 1;
-
-  const vectors = docs.map(doc => {
-    const tf = {};
-    for (const t of doc) tf[t] = (tf[t] || 0) + 1;
-    const len = doc.length || 1;
-    const vec = {};
-    for (const t in tf) vec[t] = (tf[t] / len) * (idf[t] || 1);
-    return vec;
-  });
-  return { vectors, idf };
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
-function cosineSim(a, b) {
-  let dot = 0, normA = 0, normB = 0;
-  for (const t in a) { normA += a[t]*a[t]; if (b[t]) dot += a[t]*b[t]; }
-  for (const t in b) normB += b[t]*b[t];
-  return (!normA || !normB) ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-function retrieve(query, k = 6) {
-  if (!gTfidf || !gChunks.length) return [];
-  const qTokens = tokenize(query);
-  const qVec = {};
-  for (const t of qTokens) qVec[t] = (gTfidf.idf[t] || 0.5);
-
-  return gChunks
-    .map((chunk, i) => ({ chunk, score: cosineSim(qVec, gTfidf.vectors[i]) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, k)
-    .filter(r => r.score > 0.01)
-    .map(r => ({ ...r.chunk, similarity: r.score }));
-}
-
-function searchChunks() {
-  const q = document.getElementById('chunk-query').value.trim();
-  if (!q) return;
-  const results = retrieve(q);
-  const container = document.getElementById('chunk-results');
-  container.innerHTML = '';
-  if (!results.length) {
-    container.innerHTML = '<p style="font-size:0.82rem;color:var(--ink-3)">No matching chunks. Run an analysis first.</p>';
-    return;
-  }
-  for (const r of results) {
-    const card = document.createElement('div');
-    card.className = 'chunk-card';
-    card.innerHTML = `
-      <div class="chunk-card-meta">
-        <span class="chunk-section-tag">${escHtml(r.section)}</span>
-        <span class="chunk-sim-score">similarity: ${r.similarity.toFixed(4)}</span>
-      </div>
-      <div class="chunk-text">${escHtml(r.content.slice(0, 400))}${r.content.length > 400 ? '…' : ''}</div>
-    `;
-    container.appendChild(card);
-  }
-}
-
-document.getElementById('chunk-query').addEventListener('keydown', e => {
-  if (e.key === 'Enter') searchChunks();
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
 });
 
 function escHtml(s) {
