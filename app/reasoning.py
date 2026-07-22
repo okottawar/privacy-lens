@@ -6,7 +6,7 @@ Uses NVIDIA NIM chat completion endpoint.
 import os
 import json
 import logging
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 logger = logging.getLogger("privacylens.reasoning")
 
@@ -17,12 +17,12 @@ CHAT_MODEL = os.environ.get("NVIDIA_CHAT_MODEL", "meta/llama-3.1-70b-instruct")
 _client = None
 
 
-def get_client() -> OpenAI:
+def get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
         if not NVIDIA_API_KEY:
             raise RuntimeError("NVIDIA_API_KEY environment variable is not set.")
-        _client = OpenAI(api_key=NVIDIA_API_KEY, base_url=NVIDIA_BASE_URL)
+        _client = AsyncOpenAI(api_key=NVIDIA_API_KEY, base_url=NVIDIA_BASE_URL)
     return _client
 
 
@@ -79,7 +79,7 @@ Scoring guidance:
 """
 
 
-def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict:
+async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict:
     if not retrieved_chunks:
         return {
             "risk_category": category["name"],
@@ -108,7 +108,7 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
     client = get_client()
     raw_content = None
     try:
-        resp = client.chat.completions.create(
+        resp = await client.chat.completions.create(
             model=CHAT_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
