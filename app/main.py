@@ -9,7 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.retrieval import fetch_and_parse, chunk_sections
+from app.config import get_settings
 from app.embeddings import EmbeddingIndex
+from app.embedding_provider import EmbeddingModelUnavailableError
 from app.reasoning import analyze_category, RISK_CATEGORIES
 from app.scoring import compute_overall
 
@@ -20,9 +22,9 @@ app = FastAPI(title="PrivacyLens API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # public demo — tighten if you deploy for real users
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=get_settings().allowed_origins,
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -50,6 +52,8 @@ async def _run_category(category: dict, index: EmbeddingIndex) -> dict:
         return {
             "risk_category": category["name"],
             "risk_score": 5,
+            "confidence": 0.0,
+            "disclosure_status": "unclear",
             "summary": "Analysis failed for this category; treated as indeterminate.",
             "explanation": f"Error during reasoning: {e}",
             "key_findings": [],
@@ -87,9 +91,12 @@ async def analyze(req: AnalyzeRequest):
     # 3. Embedding + FAISS index -------------------------------------------------
     try:
         index = await EmbeddingIndex.create(chunks)
+    except EmbeddingModelUnavailableError as e:
+        logger.exception("Configured embedding model is unavailable")
+        raise HTTPException(status_code=502, detail=str(e)) from e
     except Exception as e:
         logger.exception("Embedding/index build failed")
-        raise HTTPException(status_code=502, detail=f"Embedding service error: {e}")
+        raise HTTPException(status_code=502, detail=f"Embedding service error: {e}") from e
 
     # 4. Retrieval + LLM reasoning per risk category — run concurrently ----------
     findings = await asyncio.gather(*(_run_category(c, index) for c in RISK_CATEGORIES))
