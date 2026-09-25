@@ -21,7 +21,11 @@ def get_client() -> AsyncOpenAI:
     settings = get_settings()
     if not settings.nvidia_api_key:
         raise RuntimeError("NVIDIA_API_KEY environment variable is not set.")
-    return AsyncOpenAI(api_key=settings.nvidia_api_key, base_url=settings.nvidia_base_url)
+    return AsyncOpenAI(
+        api_key=settings.nvidia_api_key,
+        base_url=settings.nvidia_base_url,
+        timeout=settings.reasoning_timeout_seconds,
+    )
 
 
 RISK_CATEGORIES = [
@@ -93,6 +97,7 @@ async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict
             "red_flags": ["No disclosure found for this category"],
             "positive_indicators": [],
             "evidence": [],
+            "evidence_chunk_ids": [],
             "evidence_chunks": [],
         }
 
