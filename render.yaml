@@ -7,8 +7,14 @@ services:
     envVars:
       - key: NVIDIA_API_KEY
         sync: false
-      - key: NVIDIA_EMBED_MODEL
-        value: nvidia/nv-embedqa-e5-v5
+      - key: EMBEDDING_PROVIDER
+        value: nvidia
+      - key: EMBEDDING_MODEL
+        value: nvidia/llama-3.2-nv-embedqa-1b-v2
+      - key: EMBEDDING_BATCH_SIZE
+        value: "32"
+      - key: EMBEDDING_CONCURRENCY
+        value: "4"
       - key: NVIDIA_CHAT_MODEL
         value: meta/llama-3.1-70b-instruct
       - key: NVIDIA_BASE_URL
