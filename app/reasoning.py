@@ -3,27 +3,25 @@ LLM Reasoning Pipeline
 The LLM reasons only over retrieved evidence chunks and returns structured JSON.
 Uses NVIDIA NIM chat completion endpoint.
 """
-import os
 import json
 import logging
 from openai import AsyncOpenAI
 
 logger = logging.getLogger("privacylens.reasoning")
 
-NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
-NVIDIA_BASE_URL = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-CHAT_MODEL = os.environ.get("NVIDIA_CHAT_MODEL", "meta/llama-3.1-70b-instruct")
+import logging
+from openai import AsyncOpenAI
 
-_client = None
+from app.config import get_settings
+
+logger = logging.getLogger("privacylens.reasoning")
 
 
 def get_client() -> AsyncOpenAI:
-    global _client
-    if _client is None:
-        if not NVIDIA_API_KEY:
-            raise RuntimeError("NVIDIA_API_KEY environment variable is not set.")
-        _client = AsyncOpenAI(api_key=NVIDIA_API_KEY, base_url=NVIDIA_BASE_URL)
-    return _client
+    settings = get_settings()
+    if not settings.nvidia_api_key:
+        raise RuntimeError("NVIDIA_API_KEY environment variable is not set.")
+    return AsyncOpenAI(api_key=settings.nvidia_api_key, base_url=settings.nvidia_base_url)
 
 
 RISK_CATEGORIES = [
@@ -109,7 +107,7 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
     raw_content = None
     try:
         resp = await client.chat.completions.create(
-            model=CHAT_MODEL,
+            model=get_settings().chat_model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
