@@ -5,6 +5,7 @@ Uses NVIDIA NIM chat completion endpoint.
 """
 import json
 import logging
+from functools import lru_cache
 from openai import AsyncOpenAI
 
 logger = logging.getLogger("privacylens.reasoning")
@@ -18,6 +19,7 @@ from app.schemas import FindingOutput
 logger = logging.getLogger("privacylens.reasoning")
 
 
+@lru_cache(maxsize=1)
 def get_client() -> AsyncOpenAI:
     settings = get_settings()
     if not settings.nvidia_api_key:
