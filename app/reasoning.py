@@ -116,8 +116,14 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.2,
-            max_tokens=800,
+            temperature=0.0,
+            max_tokens=1200,
+            response_format={"type": "json_object"},
+            extra_body={
+                "chat_template_kwargs": {
+                    "enable_thinking": False,
+                }
+            },
         )
         raw_content = resp.choices[0].message.content.strip()
         parsed = FindingOutput.model_validate(_parse_json_response(raw_content)).model_dump()
