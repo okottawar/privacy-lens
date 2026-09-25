@@ -19,10 +19,8 @@ services:
         value: nvidia/nemotron-3.5-lightning-30b-a3b
       - key: NVIDIA_BASE_URL
         value: https://integrate.api.nvidia.com/v1
-      - key: REASONING_CONCURRENCY
-        value: "2"
       - key: REASONING_TIMEOUT_SECONDS
-        value: "30"
+        value: "60"
       - key: REASONING_EVIDENCE_CHUNKS
         value: "4"
       - key: REASONING_CHUNK_CHARS
