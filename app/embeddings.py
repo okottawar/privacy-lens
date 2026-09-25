@@ -123,26 +123,44 @@ class EmbeddingIndex:
         return instance
 
     async def search(self, query: str, k: int = 6) -> list[dict]:
+        results = await self.search_many([query], k=k)
+        return results[0] if results else []
+
+    async def search_many(self, queries: list[str], k: int = 6) -> list[list[dict]]:
+        """Embed and search multiple queries in one provider call."""
         if self.index is None:
             raise RuntimeError("Embedding index has not been initialized.")
+        if not queries:
+            return []
 
-        q_vec = await embed_texts([query], input_type="query")
-        faiss.normalize_L2(q_vec)
+        q_vecs = await embed_texts(queries, input_type="query")
+        if q_vecs.ndim != 2 or q_vecs.shape[0] != len(queries):
+            raise ValueError(
+                "Embedding provider returned an invalid query vector matrix: "
+                f"shape={q_vecs.shape}, queries={len(queries)}"
+            )
+
+        faiss.normalize_L2(q_vecs)
 
         k = min(max(1, k), len(self.chunks))
         candidate_k = min(max(k * 8, 32), len(self.chunks))
-        dense_scores, indices = self.index.search(q_vec, candidate_k)
+        dense_scores, indices = self.index.search(q_vecs, candidate_k)
 
-        candidates = []
-        for dense_score, index in zip(dense_scores[0], indices[0]):
-            if index == -1:
-                continue
-            chunk = self.chunks[int(index)]
-            candidates.append({
-                "section": chunk["section"],
-                "content": chunk["content"],
-                "chunk_id": chunk["chunk_id"],
-                "similarity": float(dense_score),
-            })
+        all_results = []
+        for query, query_scores, query_indices in zip(
+            queries, dense_scores, indices
+        ):
+            candidates = []
+            for dense_score, index in zip(query_scores, query_indices):
+                if index == -1:
+                    continue
+                chunk = self.chunks[int(index)]
+                candidates.append({
+                    "section": chunk["section"],
+                    "content": chunk["content"],
+                    "chunk_id": chunk["chunk_id"],
+                    "similarity": float(dense_score),
+                })
+            all_results.append(rerank(query, candidates, k))
 
-        return rerank(query, candidates, k)
+        return all_results
