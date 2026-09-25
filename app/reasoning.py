@@ -96,7 +96,7 @@ async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict
         }
 
     evidence_text = "\n\n".join(
-        f"[Section: {c['section']}]\n{c['content'][:1200]}" for c in retrieved_chunks
+        f"[Chunk ID: {c['chunk_id']}] [Section: {c['section']}]\n{c['content'][:1200]}" for c in retrieved_chunks
     )
 
     user_prompt = f"""Category to analyze: {category['name']}
