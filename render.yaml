@@ -19,4 +19,12 @@ services:
         value: openai/gpt-oss-20b
       - key: NVIDIA_BASE_URL
         value: https://integrate.api.nvidia.com/v1
+      - key: REASONING_CONCURRENCY
+        value: "2"
+      - key: REASONING_TIMEOUT_SECONDS
+        value: "30"
+      - key: REASONING_EVIDENCE_CHUNKS
+        value: "4"
+      - key: REASONING_CHUNK_CHARS
+        value: "900"
     healthCheckPath: /health
