@@ -26,3 +26,15 @@ class FindingOutput(BaseModel):
     positive_indicators: list[str] = Field(default_factory=list, max_length=4)
     evidence: list[str] = Field(default_factory=list, max_length=3)
     evidence_chunk_ids: list[str] = Field(default_factory=list, max_length=3)
+
+
+class BatchAnalysisOutput(BaseModel):
+    findings: dict[str, FindingOutput] = Field(default_factory=dict)
+
+
+class BatchFindingOutput(FindingOutput):
+    risk_category: str
+
+
+class BatchAnalysisOutput(BaseModel):
+    findings: list[BatchFindingOutput] = Field(default_factory=list, max_length=7)

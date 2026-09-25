@@ -1,8 +1,6 @@
-"""
-LLM Reasoning Pipeline
-The LLM reasons only over retrieved evidence chunks and returns structured JSON.
-Uses NVIDIA NIM chat completion endpoint.
-"""
+"""Evidence-grounded privacy policy reasoning with a single batched LLM call."""
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -11,9 +9,9 @@ from functools import lru_cache
 from openai import APITimeoutError, AsyncOpenAI
 
 from app.config import get_settings
-from app.schemas import FindingOutput
+from app.schemas import BatchAnalysisOutput
 
-logger = logging.getLogger("privacylens.reasoning")
+logger = logging.getLogger("privacelens.reasoning")
 
 
 @lru_cache(maxsize=1)
@@ -29,225 +27,153 @@ def get_client() -> AsyncOpenAI:
 
 
 RISK_CATEGORIES = [
-    {
-        "name": "Data Collection",
-        "query": "what personal data information is collected from users",
-    },
-    {
-        "name": "Third-Party Sharing",
-        "query": "sharing data with third parties advertisers partners affiliates",
-    },
-    {
-        "name": "Retention",
-        "query": "how long is data retained data retention deletion period",
-    },
-    {
-        "name": "Deletion Rights",
-        "query": "user rights to delete access correct or export their data",
-    },
-    {
-        "name": "Tracking / Cookies",
-        "query": "cookies tracking technologies pixels analytics behavioral advertising",
-    },
-    {
-        "name": "Transparency",
-        "query": "policy changes notification transparency about data practices",
-    },
-    {
-        "name": "Consent Mechanisms",
-        "query": "user consent opt-in opt-out mechanisms for data processing",
-    },
+    {"name": "Data Collection", "query": "what personal data information is collected from users"},
+    {"name": "Third-Party Sharing", "query": "sharing data with third parties advertisers partners affiliates"},
+    {"name": "Retention", "query": "how long is data retained data retention deletion period"},
+    {"name": "Deletion Rights", "query": "user rights to delete access correct or export their data"},
+    {"name": "Tracking / Cookies", "query": "cookies tracking technologies pixels analytics behavioral advertising"},
+    {"name": "Transparency", "query": "policy changes notification transparency about data practices"},
+    {"name": "Consent Mechanisms", "query": "user consent opt-in opt-out mechanisms for data processing"},
 ]
 
-SYSTEM_PROMPT = """You are a privacy policy risk analyst. You must reason ONLY over the evidence \
-chunks provided to you — do not invent facts not present in the evidence. If the evidence does not \
-address the category, say so explicitly and score conservatively (5) for "unknown/undisclosed".
+SYSTEM_PROMPT = """You are a privacy policy risk analyst. Analyze exactly seven categories using only the supplied policy evidence.
 
-Respond with ONLY a single JSON object, no markdown fences, no preamble, matching this exact schema:
+Return ONLY one JSON object with this shape:
 {
-  "risk_score": <integer 0-10, 0=no risk/excellent, 10=severe risk>,
-  "confidence": <number 0.0-1.0 representing confidence in the assessment>,
-  "disclosure_status": "<explicit|partial|not_found|unclear>",
-  "summary": "<one sentence summary>",
-  "explanation": "<2-4 sentence explanation grounded in the evidence>",
-  "key_findings": ["<short finding>", ...up to 4],
-  "red_flags": ["<short red flag phrase>", ...0-4, empty list if none],
-  "positive_indicators": ["<short positive phrase>", ...0-4, empty list if none],
-  "evidence": ["<short verbatim-ish snippet under 200 chars>", ...up to 3],
-  "evidence_chunk_ids": ["<chunk_id from the supplied evidence>", ...up to 3]
+  "findings": [
+    {
+      "risk_category": "Data Collection",
+      "risk_score": 0,
+      "confidence": 0.0,
+      "disclosure_status": "explicit",
+      "summary": "one sentence",
+      "explanation": "2-4 sentences",
+      "key_findings": [],
+      "red_flags": [],
+      "positive_indicators": [],
+      "evidence": [],
+      "evidence_chunk_ids": []
+    }
+  ]
 }
 
-Scoring guidance:
-- High risk (7-10): vague/broad sharing language, indefinite retention, no deletion rights, dark-pattern consent.
-- Medium risk (4-6): some risk factors present but partially mitigated, or evidence is ambiguous/incomplete.
-- Low risk (0-3): explicit limits, clear deletion/retention periods, opt-out/opt-in support, minimal collection.
+Rules:
+- Return exactly one finding per category.
+- Use only evidence supplied for that category.
+- evidence_chunk_ids must be chunk IDs shown in that category evidence.
+- Keep evidence quotes under 200 characters and lists concise.
+- If evidence is insufficient: risk_score=5, confidence<=0.25, disclosure_status="not_found" or "unclear".
+- Do not use external knowledge or make legal conclusions.
 """
 
 
-async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict:
-    if not retrieved_chunks:
-        return {
-            "risk_category": category["name"],
-            "risk_score": 5,
-            "confidence": 0.0,
-            "disclosure_status": "not_found",
-            "summary": "No relevant evidence retrieved for this category.",
-            "explanation": "The policy did not contain content that matched this category well enough to assess.",
-            "key_findings": [],
-            "red_flags": ["No disclosure found for this category"],
-            "positive_indicators": [],
-            "evidence": [],
-            "evidence_chunk_ids": [],
-            "evidence_chunks": [],
-        }
+def _fallback_finding(category: dict, reason: str, status: str = "unclear") -> dict:
+    return {
+        "risk_category": category["name"],
+        "risk_score": 5,
+        "confidence": 0.0,
+        "disclosure_status": status,
+        "summary": reason,
+        "explanation": reason,
+        "key_findings": [],
+        "red_flags": [],
+        "positive_indicators": [],
+        "evidence": [],
+        "evidence_chunk_ids": [],
+        "evidence_chunks": [],
+    }
 
+
+async def analyze_categories(category_evidence: dict[str, list[dict]]) -> list[dict]:
+    """Analyze all seven categories with exactly one bounded LLM request."""
     settings = get_settings()
-    evidence_limit = settings.reasoning_evidence_chunks
-    chunk_chars = settings.reasoning_chunk_chars
-    evidence_for_reasoning = retrieved_chunks[:evidence_limit]
-
-    evidence_text = "\n\n".join(
-        f"[Chunk ID: {c['chunk_id']}] [Section: {c['section']}]\n{c['content'][:chunk_chars]}"
-        for c in evidence_for_reasoning
-    )
-
-    user_prompt = f"""Category to analyze: {category['name']}
-
-Evidence retrieved from the privacy policy (top {len(evidence_for_reasoning)} relevant chunks):
-
-{evidence_text}
-
-Analyze the "{category['name']}" risk category based strictly on this evidence. In evidence_chunk_ids, select only chunk IDs supplied in the evidence above that directly support the finding. Return the JSON object."""
-
-    client = get_client()
-    raw_content = None
-    try:
-        logger.info(
-            "reasoning.start category=%s evidence_chunks=%d timeout_seconds=%s",
-            category["name"],
-            len(evidence_for_reasoning),
-            settings.reasoning_timeout_seconds,
+    evidence_blocks = []
+    for category in RISK_CATEGORIES:
+        selected = category_evidence.get(category["name"], [])[: settings.reasoning_evidence_chunks]
+        if not selected:
+            evidence_blocks.append(f"=== {category["name"]} ===\nNO RELEVANT EVIDENCE RETRIEVED")
+            continue
+        body = "\n\n".join(
+            f"[Chunk ID: {chunk["chunk_id"]}] [Section: {chunk["section"]}]\n"
+            f"{chunk["content"][:settings.reasoning_chunk_chars]}"
+            for chunk in selected
         )
-        resp = await asyncio.wait_for(
-            client.chat.completions.create(
+        evidence_blocks.append(
+            f"=== {category["name"]} ===\n"
+            f"Category query: {category["query"]}\n{body}"
+        )
+
+    user_prompt = "Analyze all seven privacy-risk categories from these evidence bundles only.\n\n" + "\n\n".join(evidence_blocks)
+    started = asyncio.get_running_loop().time()
+    try:
+        response = await asyncio.wait_for(
+            get_client().chat.completions.create(
                 model=settings.chat_model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.0,
-                max_tokens=700,
+                max_tokens=2600,
                 response_format={"type": "json_object"},
-                extra_body={
-                    "chat_template_kwargs": {
-                        "enable_thinking": False,
-                    }
-                },
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             ),
             timeout=settings.reasoning_timeout_seconds,
         )
-        raw_content = resp.choices[0].message.content.strip()
-        parsed = FindingOutput.model_validate(_parse_json_response(raw_content)).model_dump()
+        raw = (response.choices[0].message.content or "").strip()
+        parsed = BatchAnalysisOutput.model_validate(_parse_json_response(raw))
     except (asyncio.TimeoutError, APITimeoutError):
-        logger.warning(
-            "reasoning.timeout category=%s timeout_seconds=%s",
-            category["name"],
-            settings.reasoning_timeout_seconds,
-        )
-        parsed = {
-            "risk_score": 5,
-            "confidence": 0.0,
-            "disclosure_status": "unclear",
-            "summary": "Reasoning timed out; treated as indeterminate.",
-            "explanation": "The model did not return a structured result within the configured timeout.",
-            "key_findings": [],
-            "red_flags": [],
-            "positive_indicators": [],
-            "evidence": [],
-            "evidence_chunk_ids": [],
-        }
-    except Exception as e:
-        logger.warning(f"LLM call/parse failed for {category['name']}: {e}. Raw: {raw_content!r}")
-        parsed = {
-            "risk_score": 5,
-            "confidence": 0.0,
-            "disclosure_status": "unclear",
-            "summary": "Model response could not be parsed; treated as indeterminate.",
-            "explanation": "The reasoning step failed to return valid structured output.",
-            "key_findings": [],
-            "red_flags": [],
-            "positive_indicators": [],
-            "evidence": [],
-            "evidence_chunk_ids": [],
-        }
+        logger.warning("reasoning.batch.timeout timeout_seconds=%s", settings.reasoning_timeout_seconds)
+        return [_fallback_finding(c, "Batch reasoning timed out; treated as indeterminate.") for c in RISK_CATEGORIES]
+    except Exception as exc:
+        logger.exception("reasoning.batch.failed")
+        return [_fallback_finding(c, f"Batch reasoning failed; treated as indeterminate: {exc}") for c in RISK_CATEGORIES]
 
-    validated = FindingOutput.model_validate({
-        **parsed,
-        "risk_score": _clamp_score(parsed.get("risk_score", 5)),
-    })
-
-    cited_ids, cited_chunks = resolve_evidence(validated.evidence_chunk_ids, retrieved_chunks)
-
-    if validated.evidence_chunk_ids and not cited_ids:
-        validated = validated.model_copy(
-            update={
-                "confidence": 0.0,
-                "disclosure_status": "unclear",
-                "evidence": [],
-                "evidence_chunk_ids": [],
-            }
-        )
-
-    return {
-        "risk_category": category["name"],
-        "risk_score": validated.risk_score,
-        "confidence": validated.confidence,
-        "disclosure_status": validated.disclosure_status,
-        "summary": validated.summary,
-        "explanation": validated.explanation,
-        "key_findings": validated.key_findings,
-        "red_flags": validated.red_flags,
-        "positive_indicators": validated.positive_indicators,
-        "evidence": validated.evidence,
-        "evidence_chunk_ids": cited_ids,
-        "evidence_chunks": cited_chunks,
-    }
+    by_name = {item.risk_category: item for item in parsed.findings}
+    results = []
+    for category in RISK_CATEGORIES:
+        finding = by_name.get(category["name"])
+        evidence = category_evidence.get(category["name"], [])
+        if finding is None:
+            results.append(_fallback_finding(category, "The model did not return a finding for this category."))
+            continue
+        cited_ids, cited_chunks = resolve_evidence(finding.evidence_chunk_ids, evidence)
+        results.append({
+            **finding.model_dump(),
+            "evidence_chunk_ids": cited_ids,
+            "evidence_chunks": cited_chunks,
+        })
+    logger.info("reasoning.batch.complete duration_ms=%d findings=%d", int((asyncio.get_running_loop().time() - started) * 1000), len(results))
+    return results
 
 
-def resolve_evidence(
-    requested_ids: list[str],
-    retrieved_chunks: list[dict],
-) -> tuple[list[str], list[dict]]:
-    """Resolve model-selected IDs against retrieved chunks from the current request."""
+async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict:
+    """Compatibility adapter; production path uses analyze_categories()."""
+    results = await analyze_categories({category["name"]: retrieved_chunks})
+    return next(result for result in results if result["risk_category"] == category["name"])
+
+
+def resolve_evidence(requested_ids: list[str], retrieved_chunks: list[dict]) -> tuple[list[str], list[dict]]:
     available = {chunk["chunk_id"]: chunk for chunk in retrieved_chunks}
-    cited_ids = [
-        chunk_id
-        for chunk_id in dict.fromkeys(requested_ids)
-        if chunk_id in available
-    ]
+    cited_ids = [chunk_id for chunk_id in dict.fromkeys(requested_ids) if chunk_id in available]
     cited_chunks = [
-        {
-            "chunk_id": chunk_id,
-            "section": available[chunk_id]["section"],
-            "content": available[chunk_id]["content"],
-        }
+        {"chunk_id": chunk_id, "section": available[chunk_id]["section"], "content": available[chunk_id]["content"]}
         for chunk_id in cited_ids
     ]
     return cited_ids, cited_chunks
 
+
 def _parse_json_response(raw: str) -> dict:
     raw = raw.strip()
-    # strip markdown fences if the model added them anyway
     if raw.startswith("```"):
         raw = raw.strip("`")
         if raw.lower().startswith("json"):
             raw = raw[4:]
-    # find first { ... last }
     start = raw.find("{")
     end = raw.rfind("}")
     if start == -1 or end == -1:
         raise ValueError("No JSON object found in model response.")
-    return json.loads(raw[start:end + 1])
+    return json.loads(raw[start : end + 1])
 
 
 def _clamp_score(score) -> int:

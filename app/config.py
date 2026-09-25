@@ -18,7 +18,6 @@ class Settings:
     retrieval_dense_weight: float
     retrieval_lexical_weight: float
     allowed_origins: list[str]
-    reasoning_concurrency: int
     reasoning_timeout_seconds: float
     reasoning_evidence_chunks: int
     reasoning_chunk_chars: int
@@ -50,7 +49,7 @@ def get_settings() -> Settings:
         ),
         chat_model=os.getenv(
             "NVIDIA_CHAT_MODEL",
-            "openai/gpt-oss-20b",
+            "nvidia/nemotron-3.5-lightning-30b-a3b",
         ),
         retrieval_dense_weight=min(
             1.0, max(0.0, float(os.getenv("RETRIEVAL_DENSE_WEIGHT", "0.75")))
@@ -63,11 +62,8 @@ def get_settings() -> Settings:
             for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")
             if origin.strip()
         ],
-        reasoning_concurrency=max(
-            1, int(os.getenv("REASONING_CONCURRENCY", "2"))
-        ),
         reasoning_timeout_seconds=max(
-            5.0, float(os.getenv("REASONING_TIMEOUT_SECONDS", "30"))
+            5.0, float(os.getenv("REASONING_TIMEOUT_SECONDS", "60"))
         ),
         reasoning_evidence_chunks=max(
             1, int(os.getenv("REASONING_EVIDENCE_CHUNKS", "4"))
