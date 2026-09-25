@@ -17,6 +17,7 @@ class Settings:
     chat_model: str
     retrieval_dense_weight: float
     retrieval_lexical_weight: float
+    allowed_origins: list[str]
 
 
 @lru_cache(maxsize=1)
@@ -53,4 +54,9 @@ def get_settings() -> Settings:
         retrieval_lexical_weight=min(
             1.0, max(0.0, float(os.getenv("RETRIEVAL_LEXICAL_WEIGHT", "0.25")))
         ),
+        allowed_origins=[
+            origin.strip()
+            for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")
+            if origin.strip()
+        ],
     )
