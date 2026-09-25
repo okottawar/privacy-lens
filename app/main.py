@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.retrieval import fetch_and_parse, chunk_sections
+from app.config import get_settings
 from app.embeddings import EmbeddingIndex
 from app.embedding_provider import EmbeddingModelUnavailableError
 from app.reasoning import analyze_category, RISK_CATEGORIES
@@ -21,9 +22,9 @@ app = FastAPI(title="PrivacyLens API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # public demo — tighten if you deploy for real users
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=get_settings().allowed_origins,
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
