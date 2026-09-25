@@ -141,20 +141,7 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
         "risk_score": _clamp_score(parsed.get("risk_score", 5)),
     })
 
-    available = {c["chunk_id"]: c for c in retrieved_chunks}
-    cited_ids = [
-        chunk_id
-        for chunk_id in dict.fromkeys(validated.evidence_chunk_ids)
-        if chunk_id in available
-    ]
-    cited_chunks = [
-        {
-            "chunk_id": chunk_id,
-            "section": available[chunk_id]["section"],
-            "content": available[chunk_id]["content"],
-        }
-        for chunk_id in cited_ids
-    ]
+    cited_ids, cited_chunks = resolve_evidence(validated.evidence_chunk_ids, retrieved_chunks)
 
     if validated.evidence_chunk_ids and not cited_ids:
         validated = validated.model_copy(
@@ -181,6 +168,27 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
         "evidence_chunks": cited_chunks,
     }
 
+
+def resolve_evidence(
+    requested_ids: list[str],
+    retrieved_chunks: list[dict],
+) -> tuple[list[str], list[dict]]:
+    """Resolve model-selected IDs against retrieved chunks from the current request."""
+    available = {chunk["chunk_id"]: chunk for chunk in retrieved_chunks}
+    cited_ids = [
+        chunk_id
+        for chunk_id in dict.fromkeys(requested_ids)
+        if chunk_id in available
+    ]
+    cited_chunks = [
+        {
+            "chunk_id": chunk_id,
+            "section": available[chunk_id]["section"],
+            "content": available[chunk_id]["content"],
+        }
+        for chunk_id in cited_ids
+    ]
+    return cited_ids, cited_chunks
 
 def _parse_json_response(raw: str) -> dict:
     raw = raw.strip()
