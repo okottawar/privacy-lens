@@ -6,11 +6,7 @@ Uses NVIDIA NIM chat completion endpoint.
 import json
 import logging
 from functools import lru_cache
-from openai import AsyncOpenAI
 
-logger = logging.getLogger("privacylens.reasoning")
-
-import logging
 from openai import AsyncOpenAI
 
 from app.config import get_settings
@@ -137,12 +133,38 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
             "red_flags": [],
             "positive_indicators": [],
             "evidence": [],
+            "evidence_chunk_ids": [],
         }
 
     validated = FindingOutput.model_validate({
         **parsed,
         "risk_score": _clamp_score(parsed.get("risk_score", 5)),
     })
+
+    available = {c["chunk_id"]: c for c in retrieved_chunks}
+    cited_ids = [
+        chunk_id
+        for chunk_id in dict.fromkeys(validated.evidence_chunk_ids)
+        if chunk_id in available
+    ]
+    cited_chunks = [
+        {
+            "chunk_id": chunk_id,
+            "section": available[chunk_id]["section"],
+            "content": available[chunk_id]["content"],
+        }
+        for chunk_id in cited_ids
+    ]
+
+    if validated.evidence_chunk_ids and not cited_ids:
+        validated = validated.model_copy(
+            update={
+                "confidence": 0.0,
+                "disclosure_status": "unclear",
+                "evidence": [],
+                "evidence_chunk_ids": [],
+            }
+        )
 
     return {
         "risk_category": category["name"],
@@ -155,9 +177,8 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
         "red_flags": validated.red_flags,
         "positive_indicators": validated.positive_indicators,
         "evidence": validated.evidence,
-        "evidence_chunks": [
-            {"section": c["section"], "content": c["content"]} for c in retrieved_chunks
-        ],
+        "evidence_chunk_ids": cited_ids,
+        "evidence_chunks": cited_chunks,
     }
 
 
