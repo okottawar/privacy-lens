@@ -39,7 +39,7 @@ Deterministic weighted scoring
 Evidence-grounded report
 ```
 
-The current implementation uses NVIDIA NIM for both embeddings and chat reasoning, with the embedding model configured through `EMBEDDING_MODEL`. Retrieval combines dense similarity with a lightweight lexical overlap signal so exact policy terms remain discoverable. The default is `nvidia/llama-3.2-nv-embedqa-1b-v2`.
+The current implementation uses NVIDIA NIM for both embeddings and chat reasoning, with the embedding model configured through `EMBEDDING_MODEL`. Retrieval is explicitly two-stage: FAISS produces a dense candidate set, then a deterministic reranker combines dense similarity with lexical overlap so exact policy terms remain discoverable. The default embedding model is `nvidia/llama-3.2-nv-embedqa-1b-v2`.
 
 ## Why this project
 
@@ -88,6 +88,9 @@ Optional:
 - `EMBEDDING_BATCH_SIZE` — default: `32`
 - `EMBEDDING_CONCURRENCY` — default: `4`
 - `NVIDIA_CHAT_MODEL` — default: `meta/llama-3.1-70b-instruct`
+- `RETRIEVAL_DENSE_WEIGHT` — default: `0.75`
+- `RETRIEVAL_LEXICAL_WEIGHT` — default: `0.25`
+- `ALLOWED_ORIGINS` — default: `*` for the public demo; set explicit origins in production
 
 The provider/model are deliberately configuration-driven so a model retirement does not require changing application code.
 
@@ -106,17 +109,26 @@ uvicorn app.main:app --reload
 
 The repository includes a Dockerfile and Render Blueprint configuration. Set `NVIDIA_API_KEY` in Render and deploy the web service.
 
-## Roadmap
+## Upgrade status
 
-The next portfolio-focused milestones are:
+Completed on `upgrade/portfolio-foundation`:
 
-1. Evidence citations and structured findings
-2. Hybrid retrieval and reranking
-3. Evaluation dataset and retrieval/analysis metrics
-4. Automated tests and CI
-5. Policy version comparison and change detection
-6. Exportable, shareable reports
+1. Current NVIDIA embedding model migration
+2. Provider/configuration boundary
+3. Structured findings with confidence/disclosure status
+4. Authoritative evidence chunk citations
+5. Two-stage hybrid retrieval + reranking
+6. Evaluation metric harness
+7. Automated tests and GitHub Actions CI
+8. Configurable CORS
+
+Next major milestones:
+
+1. Curated human-reviewed evaluation dataset
+2. Citation-accuracy and severity-accuracy benchmark
+3. Policy version comparison and change detection
+4. Exportable/shareable reports
 
 ## Project status
 
-This branch is the first step of the portfolio upgrade: it removes the retired NVIDIA E5 v5 dependency, centralizes configuration, and introduces an explicit embedding-provider boundary.
+The foundation and retrieval-quality phases are implemented on `upgrade/portfolio-foundation`. The branch is intentionally kept as a draft PR while CI and the next evaluation/benchmark phase are completed.
