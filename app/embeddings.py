@@ -98,7 +98,6 @@ class EmbeddingIndex:
         self.chunks = chunks
         self.index: faiss.IndexFlatIP | None = None
         self.dim: int | None = None
-        self._token_sets: list[set[str]] = []
 
     @classmethod
     async def create(cls, chunks: list[dict]) -> "EmbeddingIndex":
@@ -121,7 +120,6 @@ class EmbeddingIndex:
         instance.dim = int(vectors.shape[1])
         instance.index = faiss.IndexFlatIP(instance.dim)
         instance.index.add(vectors)
-        instance._token_sets = [_tokenize(chunk["content"]) for chunk in chunks]
         return instance
 
     async def search(self, query: str, k: int = 6) -> list[dict]:
