@@ -13,6 +13,7 @@ def test_default_embedding_configuration():
 def test_default_retrieval_weights():
     settings = get_settings()
 
+    assert settings.chat_model == "openai/gpt-oss-20b"
     assert settings.retrieval_dense_weight == 0.75
     assert settings.retrieval_lexical_weight == 0.25
 
