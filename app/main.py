@@ -4,6 +4,7 @@ Fetch -> Parse/Clean -> Chunk -> Embed (NVIDIA NIM) -> FAISS -> Retrieve -> LLM 
 """
 import asyncio
 import logging
+import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,6 +18,7 @@ from app.scoring import compute_overall
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("privacylens")
+_reasoning_semaphore = asyncio.Semaphore(get_settings().reasoning_concurrency)
 
 app = FastAPI(title="PrivacyLens API", version="1.0.0")
 
@@ -44,11 +46,21 @@ def health():
 
 
 async def _run_category(category: dict, index: EmbeddingIndex) -> dict:
+    started = time.perf_counter()
     try:
-        retrieved = await index.search(category["query"], k=6)
-        return await analyze_category(category, retrieved)
+        async with _reasoning_semaphore:
+            retrieved = await index.search(category["query"], k=6)
+            result = await analyze_category(category, retrieved)
+        logger.info(
+            "category.complete category=%s duration_ms=%d status=%s",
+            category["name"],
+            int((time.perf_counter() - started) * 1000),
+            result.get("disclosure_status", "unknown"),
+        )
+        return result
     except Exception as e:
         logger.exception(f"Category analysis failed: {category['name']}")
+        logger.exception("category.failed category=%s", category["name"])
         return {
             "risk_category": category["name"],
             "risk_score": 5,
@@ -60,12 +72,15 @@ async def _run_category(category: dict, index: EmbeddingIndex) -> dict:
             "red_flags": [],
             "positive_indicators": [],
             "evidence": [],
+            "evidence_chunk_ids": [],
             "evidence_chunks": [],
         }
 
 
 @app.post("/api/v1/analyze")
 async def analyze(req: AnalyzeRequest):
+    request_started = time.perf_counter()
+    logger.info("analysis.start url=%s", req.url)
     # 1. Retrieval / ingestion ------------------------------------------------
     try:
         if req.policy_text and req.policy_text.strip():
@@ -83,14 +98,18 @@ async def analyze(req: AnalyzeRequest):
     if not sections:
         raise HTTPException(status_code=422, detail="No readable content found at that URL.")
 
+    logger.info("analysis.fetch_parse_complete duration_ms=%d sections=%d", int((time.perf_counter() - request_started) * 1000), len(sections))
+
     # 2. Chunking ---------------------------------------------------------------
     chunks = chunk_sections(sections)
+    logger.info("analysis.chunk_complete duration_ms=%d chunks=%d", int((time.perf_counter() - request_started) * 1000), len(chunks))
     if not chunks:
         raise HTTPException(status_code=422, detail="Document parsed but produced no usable chunks.")
 
     # 3. Embedding + FAISS index -------------------------------------------------
     try:
         index = await EmbeddingIndex.create(chunks)
+        logger.info("analysis.embedding_complete duration_ms=%d", int((time.perf_counter() - request_started) * 1000))
     except EmbeddingModelUnavailableError as e:
         logger.exception("Configured embedding model is unavailable")
         raise HTTPException(status_code=502, detail=str(e)) from e
@@ -98,8 +117,9 @@ async def analyze(req: AnalyzeRequest):
         logger.exception("Embedding/index build failed")
         raise HTTPException(status_code=502, detail=f"Embedding service error: {e}") from e
 
-    # 4. Retrieval + LLM reasoning per risk category — run concurrently ----------
+    # 4. Retrieval + LLM reasoning per risk category with bounded concurrency ---
     findings = await asyncio.gather(*(_run_category(c, index) for c in RISK_CATEGORIES))
+    logger.info("analysis.reasoning_complete duration_ms=%d", int((time.perf_counter() - request_started) * 1000))
     findings = list(findings)
 
     # 5. Deterministic overall scoring -------------------------------------------
@@ -107,6 +127,7 @@ async def analyze(req: AnalyzeRequest):
 
     executive_summary = build_executive_summary(overall, findings)
     executive_summary_parts = build_executive_summary_parts(overall, findings)
+    logger.info("analysis.complete duration_ms=%d score=%s", int((time.perf_counter() - request_started) * 1000), overall.get("score"))
 
     return {
         "url": req.url if req.url else "pasted-text",
