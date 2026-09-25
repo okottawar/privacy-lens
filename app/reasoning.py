@@ -22,7 +22,12 @@ def get_client() -> OpenAI:
     if _client is None:
         if not NVIDIA_API_KEY:
             raise RuntimeError("NVIDIA_API_KEY environment variable is not set.")
-        _client = OpenAI(api_key=NVIDIA_API_KEY, base_url=NVIDIA_BASE_URL)
+        _client = OpenAI(
+            api_key=NVIDIA_API_KEY,
+            base_url=NVIDIA_BASE_URL,
+            timeout=30.0,
+            max_retries=0,
+        )
     return _client
 
 
@@ -114,8 +119,10 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.2,
-            max_tokens=800,
+            temperature=0.0,
+            max_tokens=500,
+            response_format={"type": "json_object"},
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
         raw_content = resp.choices[0].message.content.strip()
         parsed = _parse_json_response(raw_content)
