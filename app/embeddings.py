@@ -97,6 +97,7 @@ class EmbeddingIndex:
         self.chunks = chunks
         self.index: faiss.IndexFlatIP | None = None
         self.dim: int | None = None
+        self._token_sets: list[set[str]] = []
 
     @classmethod
     async def create(cls, chunks: list[dict]) -> "EmbeddingIndex":
@@ -119,6 +120,7 @@ class EmbeddingIndex:
         instance.dim = int(vectors.shape[1])
         instance.index = faiss.IndexFlatIP(instance.dim)
         instance.index.add(vectors)
+        instance._token_sets = [_tokenize(chunk["content"]) for chunk in chunks]
         return instance
 
     async def search(self, query: str, k: int = 6) -> list[dict]:
@@ -129,19 +131,67 @@ class EmbeddingIndex:
         faiss.normalize_L2(q_vec)
 
         k = min(max(1, k), len(self.chunks))
-        scores, indices = self.index.search(q_vec, k)
+        candidate_k = min(max(k * 8, 32), len(self.chunks))
+        dense_scores, indices = self.index.search(q_vec, candidate_k)
 
-        results = []
-        for score, index in zip(scores[0], indices[0]):
+        query_tokens = _tokenize(query)
+        settings = get_settings()
+        dense_weight = settings.retrieval_dense_weight
+        lexical_weight = settings.retrieval_lexical_weight
+        weight_total = dense_weight + lexical_weight
+        if weight_total <= 0:
+            dense_weight, lexical_weight = 1.0, 0.0
+            weight_total = 1.0
+        dense_weight /= weight_total
+        lexical_weight /= weight_total
+
+        ranked = []
+        for dense_score, index in zip(dense_scores[0], indices[0]):
             if index == -1:
                 continue
-            chunk = self.chunks[int(index)]
+            int_index = int(index)
+            lexical_score = _jaccard(query_tokens, self._token_sets[int_index])
+            combined_score = (
+                dense_weight * float(dense_score)
+                + lexical_weight * lexical_score
+            )
+            ranked.append((combined_score, float(dense_score), lexical_score, int_index))
+
+        ranked.sort(key=lambda item: item[0], reverse=True)
+
+        results = []
+        for combined_score, dense_score, lexical_score, int_index in ranked[:k]:
+            chunk = self.chunks[int_index]
             results.append(
                 {
                     "section": chunk["section"],
                     "content": chunk["content"],
                     "chunk_id": chunk["chunk_id"],
-                    "similarity": float(score),
+                    "similarity": dense_score,
+                    "lexical_score": lexical_score,
+                    "retrieval_score": combined_score,
                 }
             )
         return results
+
+
+_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "how",
+    "in", "is", "it", "of", "on", "or", "that", "the", "their", "this",
+    "to", "user", "users", "we", "what", "with",
+}
+
+
+def _tokenize(text: str) -> set[str]:
+    tokens = set()
+    for token in text.lower().replace("/", " ").replace("-", " ").split():
+        token = "".join(char for char in token if char.isalnum())
+        if len(token) >= 3 and token not in _STOPWORDS:
+            tokens.add(token)
+    return tokens
+
+
+def _jaccard(left: set[str], right: set[str]) -> float:
+    if not left or not right:
+        return 0.0
+    return len(left & right) / len(left | right)
