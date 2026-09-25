@@ -19,7 +19,12 @@ def get_client() -> OpenAI:
     if _client is None:
         if not NVIDIA_API_KEY:
             raise RuntimeError("NVIDIA_API_KEY environment variable is not set.")
-        _client = OpenAI(api_key=NVIDIA_API_KEY, base_url=NVIDIA_BASE_URL)
+        _client = OpenAI(
+            api_key=NVIDIA_API_KEY,
+            base_url=NVIDIA_BASE_URL,
+            timeout=30.0,
+            max_retries=0,
+        )
     return _client
 
 
