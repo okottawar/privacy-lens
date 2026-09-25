@@ -13,7 +13,7 @@ from app.retrieval import fetch_and_parse, chunk_sections
 from app.config import get_settings
 from app.embeddings import EmbeddingIndex
 from app.embedding_provider import EmbeddingModelUnavailableError
-from app.reasoning import analyze_category, RISK_CATEGORIES
+from app.reasoning import analyze_categories, RISK_CATEGORIES
 from app.scoring import compute_overall
 
 logging.basicConfig(level=logging.INFO)
@@ -43,37 +43,6 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
-
-
-async def _run_category(category: dict, index: EmbeddingIndex) -> dict:
-    started = time.perf_counter()
-    try:
-        async with _reasoning_semaphore:
-            retrieved = await index.search(category["query"], k=6)
-            result = await analyze_category(category, retrieved)
-        logger.info(
-            "category.complete category=%s duration_ms=%d status=%s",
-            category["name"],
-            int((time.perf_counter() - started) * 1000),
-            result.get("disclosure_status", "unknown"),
-        )
-        return result
-    except Exception as e:
-        logger.exception("category.failed category=%s", category["name"])
-        return {
-            "risk_category": category["name"],
-            "risk_score": 5,
-            "confidence": 0.0,
-            "disclosure_status": "unclear",
-            "summary": "Analysis failed for this category; treated as indeterminate.",
-            "explanation": f"Error during reasoning: {e}",
-            "key_findings": [],
-            "red_flags": [],
-            "positive_indicators": [],
-            "evidence": [],
-            "evidence_chunk_ids": [],
-            "evidence_chunks": [],
-        }
 
 
 @app.post("/api/v1/analyze")
@@ -116,12 +85,33 @@ async def analyze(req: AnalyzeRequest):
         logger.exception("Embedding/index build failed")
         raise HTTPException(status_code=502, detail=f"Embedding service error: {e}") from e
 
-    # 4. Retrieval + LLM reasoning per risk category with bounded concurrency ---
-    findings = await asyncio.gather(*(_run_category(c, index) for c in RISK_CATEGORIES))
-    logger.info("analysis.reasoning_complete duration_ms=%d", int((time.perf_counter() - request_started) * 1000))
+    # 4. Retrieve all category evidence with one batched embedding request -------
+    category_queries = [category["query"] for category in RISK_CATEGORIES]
+    retrieval_started = time.perf_counter()
+    try:
+        retrieved_sets = await index.search_many(category_queries, k=6)
+    except Exception as e:
+        logger.exception("Batch retrieval failed")
+        raise HTTPException(status_code=502, detail=f"Retrieval service error: {e}") from e
+
+    category_evidence = {
+        category["name"]: retrieved_sets[i]
+        for i, category in enumerate(RISK_CATEGORIES)
+    }
+    logger.info(
+        "analysis.retrieval_complete duration_ms=%d",
+        int((time.perf_counter() - retrieval_started) * 1000),
+    )
+
+    # 5. One LLM request for all seven categories -------------------------------
+    findings = await analyze_categories(category_evidence)
+    logger.info(
+        "analysis.reasoning_complete duration_ms=%d",
+        int((time.perf_counter() - request_started) * 1000),
+    )
     findings = list(findings)
 
-    # 5. Deterministic overall scoring -------------------------------------------
+    # 6. Deterministic overall scoring -------------------------------------------
     overall = compute_overall(findings)
 
     executive_summary = build_executive_summary(overall, findings)
