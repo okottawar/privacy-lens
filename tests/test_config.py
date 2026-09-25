@@ -14,6 +14,10 @@ def test_default_retrieval_weights():
     settings = get_settings()
 
     assert settings.chat_model == "openai/gpt-oss-20b"
+    assert settings.reasoning_concurrency == 2
+    assert settings.reasoning_timeout_seconds == 30.0
+    assert settings.reasoning_evidence_chunks == 4
+    assert settings.reasoning_chunk_chars == 900
     assert settings.retrieval_dense_weight == 0.75
     assert settings.retrieval_lexical_weight == 0.25
 

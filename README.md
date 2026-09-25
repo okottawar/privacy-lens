@@ -88,6 +88,10 @@ Optional:
 - `EMBEDDING_BATCH_SIZE` — default: `32`
 - `EMBEDDING_CONCURRENCY` — default: `4`
 - `NVIDIA_CHAT_MODEL` — default: `openai/gpt-oss-20b`
+- `REASONING_CONCURRENCY` — default: `2`
+- `REASONING_TIMEOUT_SECONDS` — default: `30`
+- `REASONING_EVIDENCE_CHUNKS` — default: `4`
+- `REASONING_CHUNK_CHARS` — default: `900`
 - `RETRIEVAL_DENSE_WEIGHT` — default: `0.75`
 - `RETRIEVAL_LEXICAL_WEIGHT` — default: `0.25`
 - `ALLOWED_ORIGINS` — default: `*` for the public demo; set explicit origins in production
@@ -121,6 +125,7 @@ Completed on `upgrade/portfolio-foundation`:
 6. Evaluation metric harness
 7. Automated tests and GitHub Actions CI
 8. Configurable CORS
+9. Bounded LLM concurrency, timeouts, and timing logs
 
 Next major milestones:
 

@@ -18,6 +18,10 @@ class Settings:
     retrieval_dense_weight: float
     retrieval_lexical_weight: float
     allowed_origins: list[str]
+    reasoning_concurrency: int
+    reasoning_timeout_seconds: float
+    reasoning_evidence_chunks: int
+    reasoning_chunk_chars: int
 
 
 @lru_cache(maxsize=1)
@@ -59,4 +63,16 @@ def get_settings() -> Settings:
             for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")
             if origin.strip()
         ],
+        reasoning_concurrency=max(
+            1, int(os.getenv("REASONING_CONCURRENCY", "2"))
+        ),
+        reasoning_timeout_seconds=max(
+            5.0, float(os.getenv("REASONING_TIMEOUT_SECONDS", "30"))
+        ),
+        reasoning_evidence_chunks=max(
+            1, int(os.getenv("REASONING_EVIDENCE_CHUNKS", "4"))
+        ),
+        reasoning_chunk_chars=max(
+            300, int(os.getenv("REASONING_CHUNK_CHARS", "900"))
+        ),
     )
