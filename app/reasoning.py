@@ -85,6 +85,8 @@ async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict
         return {
             "risk_category": category["name"],
             "risk_score": 5,
+            "confidence": 0.0,
+            "disclosure_status": "not_found",
             "summary": "No relevant evidence retrieved for this category.",
             "explanation": "The policy did not contain content that matched this category well enough to assess.",
             "key_findings": [],
@@ -124,6 +126,8 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
         logger.warning(f"LLM call/parse failed for {category['name']}: {e}. Raw: {raw_content!r}")
         parsed = {
             "risk_score": 5,
+            "confidence": 0.0,
+            "disclosure_status": "unclear",
             "summary": "Model response could not be parsed; treated as indeterminate.",
             "explanation": "The reasoning step failed to return valid structured output.",
             "key_findings": [],
