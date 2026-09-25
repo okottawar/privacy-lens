@@ -36,7 +36,7 @@ def get_settings() -> Settings:
         embedding_provider=os.getenv("EMBEDDING_PROVIDER", "nvidia").lower(),
         embedding_model=os.getenv(
             "EMBEDDING_MODEL",
-            "nvidia/llama-3.2-nv-embedqa-1b-v2",
+            "nvidia/nemotron-3-embed-1b",
         ),
         embedding_batch_size=max(
             1, int(os.getenv("EMBEDDING_BATCH_SIZE", "32"))
