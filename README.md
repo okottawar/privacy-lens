@@ -39,7 +39,7 @@ Deterministic weighted scoring
 Evidence-grounded report
 ```
 
-The current implementation uses NVIDIA NIM for both embeddings and chat reasoning, with the embedding model configured through `EMBEDDING_MODEL`. Retrieval is explicitly two-stage: FAISS produces a dense candidate set, then a deterministic reranker combines dense similarity with lexical overlap so exact policy terms remain discoverable. The default embedding model is `nvidia/nemotron-3-embed-1b`.
+The current implementation uses NVIDIA NIM for embeddings and chat reasoning. Retrieval is explicitly two-stage: FAISS produces dense candidates, then a deterministic reranker combines dense similarity with lexical overlap. All seven privacy categories are then analyzed in one structured LLM request to avoid seven independent hosted inference calls. The default embedding model is `nvidia/nemotron-3-embed-1b`.
 
 ## Why this project
 
@@ -87,7 +87,7 @@ Optional:
 - `EMBEDDING_MODEL` — default: `nvidia/nemotron-3-embed-1b`
 - `EMBEDDING_BATCH_SIZE` — default: `32`
 - `EMBEDDING_CONCURRENCY` — default: `4`
-- `NVIDIA_CHAT_MODEL` — default: `openai/gpt-oss-20b`
+- `NVIDIA_CHAT_MODEL` — default: `nvidia/nemotron-3.5-lightning-30b-a3b`
 - `REASONING_CONCURRENCY` — default: `2`
 - `REASONING_TIMEOUT_SECONDS` — default: `30`
 - `REASONING_EVIDENCE_CHUNKS` — default: `4`
@@ -125,7 +125,7 @@ Completed on `upgrade/portfolio-foundation`:
 6. Evaluation metric harness
 7. Automated tests and GitHub Actions CI
 8. Configurable CORS
-9. Bounded LLM concurrency, timeouts, and timing logs
+9. Single-request batched LLM reasoning with bounded timeout and timing logs
 
 Next major milestones:
 
