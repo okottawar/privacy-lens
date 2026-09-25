@@ -149,7 +149,8 @@ async def analyze_categories(category_evidence: dict[str, list[dict]]) -> list[d
 
 async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict:
     """Compatibility adapter; production path uses analyze_categories()."""
-    return (await analyze_categories({category["name"]: retrieved_chunks}))[0 if True else 0]
+    results = await analyze_categories({category["name"]: retrieved_chunks})
+    return next(result for result in results if result["risk_category"] == category["name"])
 
 
 def resolve_evidence(requested_ids: list[str], retrieved_chunks: list[dict]) -> tuple[list[str], list[dict]]:
