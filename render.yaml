@@ -7,22 +7,10 @@ services:
     envVars:
       - key: NVIDIA_API_KEY
         sync: false
-      - key: EMBEDDING_PROVIDER
-        value: nvidia
-      - key: EMBEDDING_MODEL
+      - key: NVIDIA_EMBED_MODEL
         value: nvidia/nemotron-3-embed-1b
-      - key: EMBEDDING_BATCH_SIZE
-        value: "32"
-      - key: EMBEDDING_CONCURRENCY
-        value: "4"
       - key: NVIDIA_CHAT_MODEL
         value: nvidia/nemotron-3.5-lightning-30b-a3b
       - key: NVIDIA_BASE_URL
         value: https://integrate.api.nvidia.com/v1
-      - key: REASONING_TIMEOUT_SECONDS
-        value: "60"
-      - key: REASONING_EVIDENCE_CHUNKS
-        value: "4"
-      - key: REASONING_CHUNK_CHARS
-        value: "900"
     healthCheckPath: /health
