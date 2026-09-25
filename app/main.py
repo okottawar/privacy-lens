@@ -2,7 +2,6 @@
 PrivacyLens backend — RAG pipeline for privacy policy risk analysis.
 Fetch -> Parse/Clean -> Chunk -> Embed (NVIDIA NIM) -> FAISS -> Retrieve -> LLM (NVIDIA NIM) -> Score -> Report
 """
-import asyncio
 import logging
 import time
 from fastapi import FastAPI, HTTPException
