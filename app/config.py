@@ -67,7 +67,7 @@ def get_settings() -> Settings:
             1, int(os.getenv("REASONING_CONCURRENCY", "2"))
         ),
         reasoning_timeout_seconds=max(
-            5.0, float(os.getenv("REASONING_TIMEOUT_SECONDS", "45"))
+            5.0, float(os.getenv("REASONING_TIMEOUT_SECONDS", "30"))
         ),
         reasoning_evidence_chunks=max(
             1, int(os.getenv("REASONING_EVIDENCE_CHUNKS", "4"))
