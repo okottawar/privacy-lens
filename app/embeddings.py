@@ -14,6 +14,7 @@ from openai import AsyncOpenAI
 
 from app.config import get_settings
 from app.embedding_provider import EmbeddingModelUnavailableError
+from app.reranking import rerank
 
 
 class NvidiaEmbeddingProvider:
@@ -134,64 +135,16 @@ class EmbeddingIndex:
         candidate_k = min(max(k * 8, 32), len(self.chunks))
         dense_scores, indices = self.index.search(q_vec, candidate_k)
 
-        query_tokens = _tokenize(query)
-        settings = get_settings()
-        dense_weight = settings.retrieval_dense_weight
-        lexical_weight = settings.retrieval_lexical_weight
-        weight_total = dense_weight + lexical_weight
-        if weight_total <= 0:
-            dense_weight, lexical_weight = 1.0, 0.0
-            weight_total = 1.0
-        dense_weight /= weight_total
-        lexical_weight /= weight_total
-
-        ranked = []
+        candidates = []
         for dense_score, index in zip(dense_scores[0], indices[0]):
             if index == -1:
                 continue
-            int_index = int(index)
-            lexical_score = _jaccard(query_tokens, self._token_sets[int_index])
-            combined_score = (
-                dense_weight * float(dense_score)
-                + lexical_weight * lexical_score
-            )
-            ranked.append((combined_score, float(dense_score), lexical_score, int_index))
+            chunk = self.chunks[int(index)]
+            candidates.append({
+                "section": chunk["section"],
+                "content": chunk["content"],
+                "chunk_id": chunk["chunk_id"],
+                "similarity": float(dense_score),
+            })
 
-        ranked.sort(key=lambda item: item[0], reverse=True)
-
-        results = []
-        for combined_score, dense_score, lexical_score, int_index in ranked[:k]:
-            chunk = self.chunks[int_index]
-            results.append(
-                {
-                    "section": chunk["section"],
-                    "content": chunk["content"],
-                    "chunk_id": chunk["chunk_id"],
-                    "similarity": dense_score,
-                    "lexical_score": lexical_score,
-                    "retrieval_score": combined_score,
-                }
-            )
-        return results
-
-
-_STOPWORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "how",
-    "in", "is", "it", "of", "on", "or", "that", "the", "their", "this",
-    "to", "user", "users", "we", "what", "with",
-}
-
-
-def _tokenize(text: str) -> set[str]:
-    tokens = set()
-    for token in text.lower().replace("/", " ").replace("-", " ").split():
-        token = "".join(char for char in token if char.isalnum())
-        if len(token) >= 3 and token not in _STOPWORDS:
-            tokens.add(token)
-    return tokens
-
-
-def _jaccard(left: set[str], right: set[str]) -> float:
-    if not left or not right:
-        return 0.0
-    return len(left & right) / len(left | right)
+        return rerank(query, candidates, k)
