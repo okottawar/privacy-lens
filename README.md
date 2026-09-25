@@ -1,10 +1,6 @@
 # PrivacyLens
 
-**Evidence-grounded privacy policy analysis.**
-
-PrivacyLens ingests a privacy policy, retrieves clauses relevant to seven privacy-risk categories, asks an LLM to reason only over retrieved evidence, and combines category findings into a deterministic overall report.
-
-> PrivacyLens is an engineering/demo project, not legal advice.
+PrivacyLens analyzes a privacy policy using a simple evidence-grounded RAG pipeline.
 
 ## Architecture
 
@@ -12,38 +8,31 @@ PrivacyLens ingests a privacy policy, retrieves clauses relevant to seven privac
 Policy URL / pasted text
         |
         v
-Fetch + HTML/plaintext parsing
+Fetch + Parse + Clean
         |
         v
-Section-aware chunking
+Section-aware Chunking
         |
         v
-Configurable embedding provider
+NVIDIA Embeddings
         |
         v
-FAISS cosine-similarity index
+FAISS Vector Index
         |
         v
-Hybrid dense + lexical retrieval
+Retrieve top evidence per category
         |
         v
-Evidence retrieval per risk category
+NVIDIA NIM reasoning
         |
         v
-NVIDIA NIM LLM reasoning
+Deterministic risk scoring
         |
         v
-Deterministic weighted scoring
-        |
-        v
-Evidence-grounded report
+Risk Analysis Report
 ```
 
-The current implementation uses NVIDIA NIM for embeddings and chat reasoning. Retrieval is explicitly two-stage: FAISS produces dense candidates, then a deterministic reranker combines dense similarity with lexical overlap. All seven privacy categories are then analyzed in one structured LLM request to avoid seven independent hosted inference calls. The default embedding model is `nvidia/nemotron-3-embed-1b`.
-
-## Why this project
-
-Privacy policies are long, inconsistent, and difficult to compare quickly. A useful analyzer should do more than generate a generic summary: it should surface relevant clauses, preserve section context, expose supporting evidence, and make its scoring logic inspectable.
+The backend intentionally keeps this pipeline simple: one document is indexed once, each privacy category retrieves its own evidence, and the LLM reasons over that evidence. No batching layer, provider abstraction, reranker, or background job is required for the core flow.
 
 ## Risk categories
 
@@ -55,47 +44,16 @@ Privacy policies are long, inconsistent, and difficult to compare quickly. A use
 - Transparency
 - Consent Mechanisms
 
-## API
-
-`POST /api/v1/analyze`
-
-URL input:
-
-```json
-{ "url": "https://example.com/privacy" }
-```
-
-Pasted policy input:
-
-```json
-{
-  "url": "pasted-text",
-  "policy_text": "..."
-}
-```
-
 ## Configuration
 
-Required:
+Set:
 
 - `NVIDIA_API_KEY`
-
-Optional:
-
-- `NVIDIA_BASE_URL` — default: `https://integrate.api.nvidia.com/v1`
-- `EMBEDDING_PROVIDER` — default: `nvidia`
-- `EMBEDDING_MODEL` — default: `nvidia/nemotron-3-embed-1b`
-- `EMBEDDING_BATCH_SIZE` — default: `32`
-- `EMBEDDING_CONCURRENCY` — default: `4`
+- `NVIDIA_EMBED_MODEL` — default: `nvidia/nemotron-3-embed-1b`
 - `NVIDIA_CHAT_MODEL` — default: `nvidia/nemotron-3.5-lightning-30b-a3b`
-- `REASONING_TIMEOUT_SECONDS` — default: `60`
-- `REASONING_EVIDENCE_CHUNKS` — default: `4`
-- `REASONING_CHUNK_CHARS` — default: `900`
-- `RETRIEVAL_DENSE_WEIGHT` — default: `0.75`
-- `RETRIEVAL_LEXICAL_WEIGHT` — default: `0.25`
-- `ALLOWED_ORIGINS` — default: `*` for the public demo; set explicit origins in production
+- `NVIDIA_BASE_URL` — default: `https://integrate.api.nvidia.com/v1`
 
-The provider/model are deliberately configuration-driven so a model retirement does not require changing application code. The chat model uses NVIDIA's current `openai/gpt-oss-20b` Free Endpoint.
+The embedding model uses NVIDIA's query/passage modes, as required by the NeMo Retriever API. citeturn686749search0turn686749search2
 
 ## Local development
 
@@ -110,29 +68,8 @@ uvicorn app.main:app --reload
 
 ## Deployment
 
-The repository includes a Dockerfile and Render Blueprint configuration. Set `NVIDIA_API_KEY` in Render and deploy the web service.
+Render uses the included `render.yaml`. The frontend is a separate static file and is intentionally not modified by this reset.
 
-## Upgrade status
+## Status
 
-Completed on `upgrade/portfolio-foundation`:
-
-1. Current NVIDIA embedding model migration
-2. Provider/configuration boundary
-3. Structured findings with confidence/disclosure status
-4. Authoritative evidence chunk citations
-5. Two-stage hybrid retrieval + reranking
-6. Evaluation metric harness
-7. Automated tests and GitHub Actions CI
-8. Configurable CORS
-9. Single-request batched LLM reasoning with bounded timeout and timing logs
-
-Next major milestones:
-
-1. Curated human-reviewed evaluation dataset
-2. Citation-accuracy and severity-accuracy benchmark
-3. Policy version comparison and change detection
-4. Exportable/shareable reports
-
-## Project status
-
-The foundation and retrieval-quality phases are implemented on `upgrade/portfolio-foundation`. The branch is intentionally kept as a draft PR while CI and the next evaluation/benchmark phase are completed.
+This is the clean baseline for the next portfolio iteration. Keep the core request path stable before adding further optimization or evaluation layers.
