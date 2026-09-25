@@ -46,7 +46,7 @@ def get_settings() -> Settings:
         ),
         chat_model=os.getenv(
             "NVIDIA_CHAT_MODEL",
-            "meta/llama-3.1-70b-instruct",
+            "openai/gpt-oss-20b",
         ),
         retrieval_dense_weight=min(
             1.0, max(0.0, float(os.getenv("RETRIEVAL_DENSE_WEIGHT", "0.75")))

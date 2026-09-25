@@ -87,12 +87,12 @@ Optional:
 - `EMBEDDING_MODEL` — default: `nvidia/llama-3.2-nv-embedqa-1b-v2`
 - `EMBEDDING_BATCH_SIZE` — default: `32`
 - `EMBEDDING_CONCURRENCY` — default: `4`
-- `NVIDIA_CHAT_MODEL` — default: `meta/llama-3.1-70b-instruct`
+- `NVIDIA_CHAT_MODEL` — default: `openai/gpt-oss-20b`
 - `RETRIEVAL_DENSE_WEIGHT` — default: `0.75`
 - `RETRIEVAL_LEXICAL_WEIGHT` — default: `0.25`
 - `ALLOWED_ORIGINS` — default: `*` for the public demo; set explicit origins in production
 
-The provider/model are deliberately configuration-driven so a model retirement does not require changing application code.
+The provider/model are deliberately configuration-driven so a model retirement does not require changing application code. The chat model uses NVIDIA's current `openai/gpt-oss-20b` Free Endpoint.
 
 ## Local development
 
