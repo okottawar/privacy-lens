@@ -16,7 +16,7 @@ services:
       - key: EMBEDDING_CONCURRENCY
         value: "4"
       - key: NVIDIA_CHAT_MODEL
-        value: openai/gpt-oss-20b
+        value: nvidia/nemotron-3.5-lightning-30b-a3b
       - key: NVIDIA_BASE_URL
         value: https://integrate.api.nvidia.com/v1
       - key: REASONING_CONCURRENCY
