@@ -51,6 +51,8 @@ async def _run_category(category: dict, index: EmbeddingIndex) -> dict:
         return {
             "risk_category": category["name"],
             "risk_score": 5,
+            "confidence": 0.0,
+            "disclosure_status": "unclear",
             "summary": "Analysis failed for this category; treated as indeterminate.",
             "explanation": f"Error during reasoning: {e}",
             "key_findings": [],
