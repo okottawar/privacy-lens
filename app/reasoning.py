@@ -72,7 +72,8 @@ Respond with ONLY a single JSON object, no markdown fences, no preamble, matchin
   "key_findings": ["<short finding>", ...up to 4],
   "red_flags": ["<short red flag phrase>", ...0-4, empty list if none],
   "positive_indicators": ["<short positive phrase>", ...0-4, empty list if none],
-  "evidence": ["<short verbatim-ish snippet under 200 chars>", ...up to 3]
+  "evidence": ["<short verbatim-ish snippet under 200 chars>", ...up to 3],
+  "evidence_chunk_ids": ["<chunk_id from the supplied evidence>", ...up to 3]
 }
 
 Scoring guidance:
