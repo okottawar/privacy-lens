@@ -30,3 +30,11 @@ class FindingOutput(BaseModel):
 
 class BatchAnalysisOutput(BaseModel):
     findings: dict[str, FindingOutput] = Field(default_factory=dict)
+
+
+class BatchFindingOutput(FindingOutput):
+    risk_category: str
+
+
+class BatchAnalysisOutput(BaseModel):
+    findings: list[BatchFindingOutput] = Field(default_factory=list, max_length=7)
