@@ -7,6 +7,7 @@ through environment configuration.
 from __future__ import annotations
 
 import asyncio
+from functools import lru_cache
 import faiss
 import numpy as np
 from openai import AsyncOpenAI
@@ -69,6 +70,7 @@ class NvidiaEmbeddingProvider:
         return np.asarray(vectors, dtype="float32")
 
 
+@lru_cache(maxsize=1)
 def get_embedding_provider() -> NvidiaEmbeddingProvider:
     settings = get_settings()
     if settings.embedding_provider != "nvidia":
