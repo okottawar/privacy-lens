@@ -3,6 +3,7 @@ LLM Reasoning Pipeline
 The LLM reasons only over retrieved evidence chunks and returns structured JSON.
 Uses NVIDIA NIM chat completion endpoint.
 """
+import asyncio
 import json
 import logging
 from functools import lru_cache
@@ -95,13 +96,19 @@ async def analyze_category(category: dict, retrieved_chunks: list[dict]) -> dict
             "evidence_chunks": [],
         }
 
+    settings = get_settings()
+    evidence_limit = settings.reasoning_evidence_chunks
+    chunk_chars = settings.reasoning_chunk_chars
+    evidence_for_reasoning = retrieved_chunks[:evidence_limit]
+
     evidence_text = "\n\n".join(
-        f"[Chunk ID: {c['chunk_id']}] [Section: {c['section']}]\n{c['content'][:1200]}" for c in retrieved_chunks
+        f"[Chunk ID: {c['chunk_id']}] [Section: {c['section']}]\n{c['content'][:chunk_chars]}"
+        for c in evidence_for_reasoning
     )
 
     user_prompt = f"""Category to analyze: {category['name']}
 
-Evidence retrieved from the privacy policy (top {len(retrieved_chunks)} relevant chunks):
+Evidence retrieved from the privacy policy (top {len(evidence_for_reasoning)} relevant chunks):
 
 {evidence_text}
 
@@ -110,23 +117,50 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
     client = get_client()
     raw_content = None
     try:
-        resp = await client.chat.completions.create(
-            model=get_settings().chat_model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.0,
-            max_tokens=1200,
-            response_format={"type": "json_object"},
-            extra_body={
-                "chat_template_kwargs": {
-                    "enable_thinking": False,
-                }
-            },
+        logger.info(
+            "reasoning.start category=%s evidence_chunks=%d timeout_seconds=%s",
+            category["name"],
+            len(evidence_for_reasoning),
+            settings.reasoning_timeout_seconds,
+        )
+        resp = await asyncio.wait_for(
+            client.chat.completions.create(
+                model=settings.chat_model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.0,
+                max_tokens=700,
+                response_format={"type": "json_object"},
+                extra_body={
+                    "chat_template_kwargs": {
+                        "enable_thinking": False,
+                    }
+                },
+            ),
+            timeout=settings.reasoning_timeout_seconds,
         )
         raw_content = resp.choices[0].message.content.strip()
         parsed = FindingOutput.model_validate(_parse_json_response(raw_content)).model_dump()
+    except asyncio.TimeoutError:
+        logger.warning(
+            "reasoning.timeout category=%s timeout_seconds=%s",
+            category["name"],
+            settings.reasoning_timeout_seconds,
+        )
+        parsed = {
+            "risk_score": 5,
+            "confidence": 0.0,
+            "disclosure_status": "unclear",
+            "summary": "Reasoning timed out; treated as indeterminate.",
+            "explanation": "The model did not return a structured result within the configured timeout.",
+            "key_findings": [],
+            "red_flags": [],
+            "positive_indicators": [],
+            "evidence": [],
+            "evidence_chunk_ids": [],
+        }
     except Exception as e:
         logger.warning(f"LLM call/parse failed for {category['name']}: {e}. Raw: {raw_content!r}")
         parsed = {
