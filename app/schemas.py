@@ -9,6 +9,12 @@ from pydantic import BaseModel, Field
 DisclosureStatus = Literal["explicit", "partial", "not_found", "unclear"]
 
 
+class EvidenceRef(BaseModel):
+    chunk_id: str
+    section: str
+    content: str
+
+
 class FindingOutput(BaseModel):
     risk_score: int = Field(ge=0, le=10)
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
@@ -19,3 +25,4 @@ class FindingOutput(BaseModel):
     red_flags: list[str] = Field(default_factory=list, max_length=4)
     positive_indicators: list[str] = Field(default_factory=list, max_length=4)
     evidence: list[str] = Field(default_factory=list, max_length=3)
+    evidence_chunk_ids: list[str] = Field(default_factory=list, max_length=3)
