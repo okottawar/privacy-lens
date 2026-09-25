@@ -105,7 +105,7 @@ Evidence retrieved from the privacy policy (top {len(retrieved_chunks)} relevant
 
 {evidence_text}
 
-Analyze the "{category['name']}" risk category based strictly on this evidence. Return the JSON object."""
+Analyze the "{category['name']}" risk category based strictly on this evidence. In evidence_chunk_ids, select only chunk IDs supplied in the evidence above that directly support the finding. Return the JSON object."""
 
     client = get_client()
     raw_content = None
