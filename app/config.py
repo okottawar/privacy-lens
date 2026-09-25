@@ -15,6 +15,8 @@ class Settings:
     embedding_batch_size: int
     embedding_concurrency: int
     chat_model: str
+    retrieval_dense_weight: float
+    retrieval_lexical_weight: float
 
 
 @lru_cache(maxsize=1)
@@ -44,5 +46,11 @@ def get_settings() -> Settings:
         chat_model=os.getenv(
             "NVIDIA_CHAT_MODEL",
             "meta/llama-3.1-70b-instruct",
+        ),
+        retrieval_dense_weight=min(
+            1.0, max(0.0, float(os.getenv("RETRIEVAL_DENSE_WEIGHT", "0.75")))
+        ),
+        retrieval_lexical_weight=min(
+            1.0, max(0.0, float(os.getenv("RETRIEVAL_LEXICAL_WEIGHT", "0.25")))
         ),
     )
