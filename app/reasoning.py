@@ -13,6 +13,7 @@ import logging
 from openai import AsyncOpenAI
 
 from app.config import get_settings
+from app.schemas import FindingOutput
 
 logger = logging.getLogger("privacylens.reasoning")
 
@@ -62,6 +63,8 @@ address the category, say so explicitly and score conservatively (5) for "unknow
 Respond with ONLY a single JSON object, no markdown fences, no preamble, matching this exact schema:
 {
   "risk_score": <integer 0-10, 0=no risk/excellent, 10=severe risk>,
+  "confidence": <number 0.0-1.0 representing confidence in the assessment>,
+  "disclosure_status": "<explicit|partial|not_found|unclear>",
   "summary": "<one sentence summary>",
   "explanation": "<2-4 sentence explanation grounded in the evidence>",
   "key_findings": ["<short finding>", ...up to 4],
@@ -116,7 +119,7 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
             max_tokens=800,
         )
         raw_content = resp.choices[0].message.content.strip()
-        parsed = _parse_json_response(raw_content)
+        parsed = FindingOutput.model_validate(_parse_json_response(raw_content)).model_dump()
     except Exception as e:
         logger.warning(f"LLM call/parse failed for {category['name']}: {e}. Raw: {raw_content!r}")
         parsed = {
@@ -129,17 +132,22 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
             "evidence": [],
         }
 
-    risk_score = _clamp_score(parsed.get("risk_score", 5))
+    validated = FindingOutput.model_validate({
+        **parsed,
+        "risk_score": _clamp_score(parsed.get("risk_score", 5)),
+    })
 
     return {
         "risk_category": category["name"],
-        "risk_score": risk_score,
-        "summary": parsed.get("summary", ""),
-        "explanation": parsed.get("explanation", ""),
-        "key_findings": parsed.get("key_findings", []) or [],
-        "red_flags": parsed.get("red_flags", []) or [],
-        "positive_indicators": parsed.get("positive_indicators", []) or [],
-        "evidence": parsed.get("evidence", []) or [],
+        "risk_score": validated.risk_score,
+        "confidence": validated.confidence,
+        "disclosure_status": validated.disclosure_status,
+        "summary": validated.summary,
+        "explanation": validated.explanation,
+        "key_findings": validated.key_findings,
+        "red_flags": validated.red_flags,
+        "positive_indicators": validated.positive_indicators,
+        "evidence": validated.evidence,
         "evidence_chunks": [
             {"section": c["section"], "content": c["content"]} for c in retrieved_chunks
         ],
