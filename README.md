@@ -39,7 +39,7 @@ Deterministic weighted scoring
 Evidence-grounded report
 ```
 
-The current implementation uses NVIDIA NIM for both embeddings and chat reasoning, with the embedding model configured through `EMBEDDING_MODEL`. Retrieval is explicitly two-stage: FAISS produces a dense candidate set, then a deterministic reranker combines dense similarity with lexical overlap so exact policy terms remain discoverable. The default embedding model is `nvidia/llama-3.2-nv-embedqa-1b-v2`.
+The current implementation uses NVIDIA NIM for both embeddings and chat reasoning, with the embedding model configured through `EMBEDDING_MODEL`. Retrieval is explicitly two-stage: FAISS produces a dense candidate set, then a deterministic reranker combines dense similarity with lexical overlap so exact policy terms remain discoverable. The default embedding model is `nvidia/nemotron-3-embed-1b`.
 
 ## Why this project
 
