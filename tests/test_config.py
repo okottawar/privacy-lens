@@ -15,3 +15,9 @@ def test_default_retrieval_weights():
 
     assert settings.retrieval_dense_weight == 0.75
     assert settings.retrieval_lexical_weight == 0.25
+
+
+def test_default_allowed_origins_keeps_public_demo_compatible():
+    settings = get_settings()
+
+    assert settings.allowed_origins == ["*"]
