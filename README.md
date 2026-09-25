@@ -24,6 +24,9 @@ Configurable embedding provider
 FAISS cosine-similarity index
         |
         v
+Hybrid dense + lexical retrieval
+        |
+        v
 Evidence retrieval per risk category
         |
         v
@@ -36,7 +39,7 @@ Deterministic weighted scoring
 Evidence-grounded report
 ```
 
-The current implementation uses NVIDIA NIM for both embeddings and chat reasoning, with the embedding model configured through `EMBEDDING_MODEL`. The default is `nvidia/llama-3.2-nv-embedqa-1b-v2`.
+The current implementation uses NVIDIA NIM for both embeddings and chat reasoning, with the embedding model configured through `EMBEDDING_MODEL`. Retrieval combines dense similarity with a lightweight lexical overlap signal so exact policy terms remain discoverable. The default is `nvidia/llama-3.2-nv-embedqa-1b-v2`.
 
 ## Why this project
 
