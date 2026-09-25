@@ -13,7 +13,7 @@ def test_default_embedding_configuration():
 def test_default_retrieval_weights():
     settings = get_settings()
 
-    assert settings.chat_model == "openai/gpt-oss-20b"
+    assert settings.chat_model == "nvidia/nemotron-3.5-lightning-30b-a3b"
     assert settings.reasoning_concurrency == 2
     assert settings.reasoning_timeout_seconds == 30.0
     assert settings.reasoning_evidence_chunks == 4
