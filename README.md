@@ -84,7 +84,7 @@ Optional:
 
 - `NVIDIA_BASE_URL` — default: `https://integrate.api.nvidia.com/v1`
 - `EMBEDDING_PROVIDER` — default: `nvidia`
-- `EMBEDDING_MODEL` — default: `nvidia/llama-3.2-nv-embedqa-1b-v2`
+- `EMBEDDING_MODEL` — default: `nvidia/nemotron-3-embed-1b`
 - `EMBEDDING_BATCH_SIZE` — default: `32`
 - `EMBEDDING_CONCURRENCY` — default: `4`
 - `NVIDIA_CHAT_MODEL` — default: `openai/gpt-oss-20b`
