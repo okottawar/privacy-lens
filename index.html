@@ -685,7 +685,7 @@ function renderResults(data) {
     <div class="score-meta-item"><strong>${data.total_chunks}</strong><br>Chunks Indexed</div>
     <div class="score-meta-item"><strong>${data.total_sections}</strong><br>Sections Parsed</div>
     <div class="score-meta-item"><strong>${data.findings.length}</strong><br>Categories Analyzed</div>
-    <div class="score-meta-item"><strong>FAISS + NIM</strong><br>Retrieval Method</div>
+    <div class="score-meta-item"><strong>Hybrid Retrieval</strong><br>Retrieval Method</div>
   `;
 
   const grid = document.getElementById('risk-grid');
@@ -738,11 +738,21 @@ function openModal(category) {
   const goodHTML = f.positive_indicators?.length
     ? f.positive_indicators.map(p => `<li class="good-item">${escHtml(p)}</li>`).join('')
     : '<li style="color:var(--ink-3)">None identified</li>';
-  const evidHTML = f.evidence?.slice(0, 3)
-    .map(e => `<span class="evidence-chip">"${escHtml(e)}"</span>`).join('') || '';
+  const evidHTML = f.evidence_chunks?.slice(0, 3)
+    .map(e => `
+      <div class="evidence-chip">
+        <strong>${escHtml(e.section || 'Source section')}</strong>
+        <div style="margin-top:4px;">"${escHtml(e.content || '')}"</div>
+        <div style="margin-top:5px; color:var(--ink-4); font-size:0.65rem;">${escHtml(e.chunk_id || '')}</div>
+      </div>`).join('') || '';
 
   document.getElementById('modal-body').innerHTML = `
     <div class="modal-summary">${escHtml(f.explanation || f.summary || '')}</div>
+    <div class="score-meta" style="margin:0 0 12px;">
+      <div class="score-meta-item"><strong>${Math.round((f.confidence ?? 0) * 100)}%</strong><br>Confidence</div>
+      <div class="score-meta-item"><strong>${escHtml(f.disclosure_status || 'unclear')}</strong><br>Disclosure Status</div>
+      <div class="score-meta-item"><strong>${f.evidence_chunk_ids?.length || 0}</strong><br>Cited Chunks</div>
+    </div>
     ${f.key_findings?.length ? `
       <div class="finding-section-head">Key Findings</div>
       <ul class="finding-list">
