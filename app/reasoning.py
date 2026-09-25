@@ -8,7 +8,7 @@ import json
 import logging
 from functools import lru_cache
 
-from openai import AsyncOpenAI
+from openai import APITimeoutError, AsyncOpenAI
 
 from app.config import get_settings
 from app.schemas import FindingOutput
@@ -148,7 +148,7 @@ Analyze the "{category['name']}" risk category based strictly on this evidence. 
         )
         raw_content = resp.choices[0].message.content.strip()
         parsed = FindingOutput.model_validate(_parse_json_response(raw_content)).model_dump()
-    except asyncio.TimeoutError:
+    except (asyncio.TimeoutError, APITimeoutError):
         logger.warning(
             "reasoning.timeout category=%s timeout_seconds=%s",
             category["name"],
