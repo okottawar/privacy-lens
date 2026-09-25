@@ -10,7 +10,7 @@ services:
       - key: EMBEDDING_PROVIDER
         value: nvidia
       - key: EMBEDDING_MODEL
-        value: nvidia/llama-3.2-nv-embedqa-1b-v2
+        value: nvidia/nemotron-3-embed-1b
       - key: EMBEDDING_BATCH_SIZE
         value: "32"
       - key: EMBEDDING_CONCURRENCY
