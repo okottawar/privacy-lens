@@ -59,7 +59,6 @@ async def _run_category(category: dict, index: EmbeddingIndex) -> dict:
         )
         return result
     except Exception as e:
-        logger.exception(f"Category analysis failed: {category['name']}")
         logger.exception("category.failed category=%s", category["name"])
         return {
             "risk_category": category["name"],
